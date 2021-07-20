@@ -50,7 +50,8 @@
   (setq evil-want-integration t ;; This is optional since it's already set to t by default.
         evil-want-keybinding nil
         evil-symbol-word-search t  ;; Makes evil-search-word- look for word
-        evil-undo-system 'undo-tree)
+        evil-undo-system 'undo-tree
+        evil-search-module 'evil-search)
   :config
   (evil-mode 1))
 
@@ -104,67 +105,6 @@
   :config
   (selectrum-prescient-mode +1)
   (prescient-persist-mode +1))
-
-;; fuzzy search
-;;(use-package helm
-;;  :after exec-path-from-shell
-;;  :bind (("C-x C-f" . helm-find-files)
-;;         ("M-x" . helm-M-x)
-;;         ("C-x C-b" . helm-mini)
-;;         ("C-x b" . helm-buffers-list))
-;;  :init
-;;  ;; center buffer frame (https://www.reddit.com/r/emacs/comments/jj269n/display_helm_frames_in_the_center_of_emacs/)
-;;  (defun my-helm-display-frame-center (buffer &optional resume)
-;;    "Display `helm-buffer' in a separate frame which centered in
-;;parent frame."
-;;    (if (not (display-graphic-p))
-;;        ;; Fallback to default when frames are not usable.
-;;        (helm-default-display-buffer buffer)
-;;      (setq helm--buffer-in-new-frame-p t)
-;;      (let* ((parent (selected-frame))
-;;             (frame-pos (frame-position parent))
-;;             (parent-left (car frame-pos))
-;;             (parent-top (cdr frame-pos))
-;;             (width (/ (frame-width parent) 2))
-;;             (height (/ (frame-height parent) 3))
-;;             tab-bar-mode
-;;             (default-frame-alist
-;;               (if resume
-;;                   (buffer-local-value 'helm--last-frame-parameters
-;;                                       (get-buffer buffer))
-;;                 `((parent . ,parent)
-;;                   (width . ,width)
-;;                   (height . ,height)
-;;                   (undecorated . ,helm-use-undecorated-frame-option)
-;;                   (left-fringe . 0)
-;;                   (right-fringe . 0)
-;;                   (tool-bar-lines . 0)
-;;                   (line-spacing . 0)
-;;                   (desktop-dont-save . t)
-;;                   (no-special-glyphs . t)
-;;                   (inhibit-double-buffering . t)
-;;                   (tool-bar-lines . 0)
-;;                   (left . ,(+ parent-left (/ (* (frame-char-width parent) (frame-width parent)) 4)))
-;;                   (top . ,(+ parent-top (/ (* (frame-char-width parent) (frame-height parent)) 6)))
-;;                   (title . "Helm")
-;;                   (vertical-scroll-bars . nil)
-;;                   (menu-bar-lines . 0)
-;;                   (fullscreen . nil)
-;;                   (visible . ,(null helm-display-buffer-reuse-frame))
-;;                   ;; (internal-border-width . ,(if IS-MAC 1 0))
-;;                   )))
-;;             display-buffer-alist)
-;;        (set-face-background 'internal-border (face-foreground 'default))
-;;        (helm-display-buffer-popup-frame buffer default-frame-alist))
-;;      (helm-log-run-hook 'helm-window-configuration-hook)))
-;;  (setq helm-display-function 'my-helm-display-frame-center)
-;;  (setq helm-show-completion-display-function #'my-helm-display-frame-center)
-;;  :config
-;;  (exec-path-from-shell-initialize)
-;;  (helm-mode 1)
-;;  )
-
-
 
 
 ;; project management
@@ -249,6 +189,9 @@
 ;; show matching parantheses
 (show-paren-mode t)
 
+;; render emojis, i.e. :smile:
+(use-package emojify
+  :hook (after-init . global-emojify-mode))
 
 ;; UX CONFIG
 
@@ -279,6 +222,16 @@
                   evil-window-up)))
   (golden-ratio-mode))
 
+;; show number of matches when searching
+(use-package evil-anzu
+  :after evil)
+
+(use-package anzu
+  :config
+  (global-anzu-mode))
+
+
+
 ;; PROGRAMMING GENERAL
 
 ;; ability to use multiple terminal sessions
@@ -307,11 +260,11 @@
   :config (global-flycheck-mode))
 
 ;; yasnippet
-(use-package yasnippet-snippets) ;; actual snippets
 (use-package yasnippet
   :after yasnippet-snippets
   :config
   (yas-global-mode 1))
+(use-package yasnippet-snippets) ;; actual snippets
 
 ;; default to 4 spaces per tab
 (setq-default tab-width 4 indent-tabs-mode nil)
@@ -365,6 +318,9 @@
   (setq ess-use-flymake nil) ;; disable Flymake
   (add-hook 'ess-r-mode-hook (lambda()
                                'electric-layout-mode)))
+
+;; CSV
+(use-package csv-mode)
 
 ;; YAML
 (use-package yaml-mode
@@ -477,19 +433,14 @@
 (use-package ispell
   :commands (ispell-word
              ispell-region
-             ispell-buffer)
-  :config
-  (let ((hunspell-file (executable-find "hunspell"))
-        (dict-path '(("en_US" "~/Library/Spelling/en_US.aff"))))
-    (setq ispell-really-hunspell hunspell-file
-          ispell-program-name hunspell-file
-          ispell-dictionary "en_US"
-          ispell-dictionary-alist dict-path)))
+             ispell-buffer))
 
 (use-package thesaurus
   :straight (thesaurus :type git :host github :repo "AnselmC/thesaurus.el"))
 
-(use-package flyspell)
+(use-package flyspell
+  :config (flyspell-mode t))
+
 
 (use-package flyspell-correct
   :config
@@ -508,13 +459,24 @@
 ;; Revert (update) buffers automatically when underlying files are changed externally.
 (global-auto-revert-mode t)
 
-(add-to-list 'load-path "~/.emacs.d/custom")
-(require 'sphinx-doc)
-(require 'org-extensions)
-(require 'elpy-extensions)
-(require 'miscellaneous)
-(add-to-list 'load-path "~/.emacs.d/custom/translatel")
-(require 'translat)
+(use-package elpy
+  :init
+  (progn
+    (elpy-enable)
+    (add-hook 'elpy-mode-hook (lambda ()
+                                (add-hook 'before-save-hook
+                                          'elpy-black-fix-code nil t)))))
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt")
+
+;;(add-to-list 'load-path "~/.emacs.d/custom")
+;;(require 'sphinx-doc)
+;;(require 'org-extensions)
+;;(require 'elpy-extensions)
+;;(require 'miscellaneous)
+;;(add-to-list 'load-path "~/.emacs.d/custom/translatel")
+;;(require 'translat)
 
 
 
