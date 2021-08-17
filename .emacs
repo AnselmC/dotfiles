@@ -1,7 +1,6 @@
 ;;; .emacs --- Anselm's emacs config
 ;;; Commentary:
 
-;;; Code:
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -9,17 +8,18 @@
  ;; If there is more than one, they won't work right.
  '(custom-enabled-themes '(sanityinc-tomorrow-eighties))
  '(custom-safe-themes
-   '("06f0b439b62164c6f8f84fdda32b62fb50b6d00e8b01c2208e55543a6337433a" "82d2cac368ccdec2fcc7573f24c3f79654b78bf133096f9b40c20d97ec1d8016" "bb08c73af94ee74453c90422485b29e5643b73b05e8de029a6909af6a3fb3f58" "628278136f88aa1a151bb2d6c8a86bf2b7631fbea5f0f76cba2a0079cd910f7d" default))
- '(exec-path
-   '("/usr/bin" "/bin" "/usr/sbin" "/sbin" "/Applications/Emacs.app/Contents/MacOS/bin-x86_64-10_14" "/Applications/Emacs.app/Contents/MacOS/libexec-x86_64-10_14" "/Applications/Emacs.app/Contents/MacOS/libexec" "/Applications/Emacs.app/Contents/MacOS/bin" "/usr/local/bin"))
+   '("bb08c73af94ee74453c90422485b29e5643b73b05e8de029a6909af6a3fb3f58" "628278136f88aa1a151bb2d6c8a86bf2b7631fbea5f0f76cba2a0079cd910f7d" default))
+ '(elpy-syntax-check-command "pylint")
  '(helm-minibuffer-history-key "M-p")
- '(selectrum-mode t))
+ '(org-agenda-files '("~/todo.org")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+;;; Code:
 ;; straight.el for package management (https://github.com/raxod502/straight.el)
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -185,8 +185,12 @@
   (advice-add 'compilation-filter :around #'my/advice-compilation-filter)
   )
 
+;; Enable richer annotations
+(use-package marginalia
+  :init
+  (marginalia-mode))
 
-;; show matching parantheses
+;; Show matching parantheses
 (show-paren-mode t)
 
 ;; render emojis, i.e. :smile:
@@ -332,11 +336,9 @@
 
 ;; SQL
 (use-package sqlformat
-  :init
+  :config
   (progn
-    (add-hook 'sql-mode-hook 'sqlformat-on-save-mode)
-    (define-key sql-mode-map (kbd "C-c C-f") 'sqlformat)))
-
+    (add-hook 'sql-mode-hook 'sqlformat-on-save-mode)))
 
 
 ;; PRODUCTIVITY
@@ -460,9 +462,13 @@
 (global-auto-revert-mode t)
 
 (use-package elpy
+  :bind (("C-c d" . 'elpy-goto-definition)
+         ("C-c w" . 'elpy-goto-definition-other-window))
   :init
   (progn
     (elpy-enable)
+    (setq elpy-rpc-timeout 5000
+          elpy-rpc-virtualenv-path 'current)
     (add-hook 'elpy-mode-hook (lambda ()
                                 (add-hook 'before-save-hook
                                           'elpy-black-fix-code nil t)))))
@@ -470,19 +476,13 @@
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt")
 
-;;(add-to-list 'load-path "~/.emacs.d/custom")
-;;(require 'sphinx-doc)
-;;(require 'org-extensions)
-;;(require 'elpy-extensions)
-;;(require 'miscellaneous)
-;;(add-to-list 'load-path "~/.emacs.d/custom/translatel")
-;;(require 'translat)
+;; CUSTOM
 
-
+(defun set-font-height (height)
+    (set-face-attribute 'default nil :height height))
 
 ;; reload buffers etc from previous session
 (desktop-save-mode 1)
 
 (provide '.emacs)
 ;;; .emacs ends here
-
