@@ -303,8 +303,10 @@
   :bind ("C-x g" . magit-status))
 
 ;; code error checking
+(flymake-mode-off)
 (use-package flycheck
   :config (global-flycheck-mode))
+
 
 ;; yasnippet
 (use-package yasnippet
