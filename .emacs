@@ -42,6 +42,7 @@
 
 ;; evil-mode
 (use-package undo-tree
+  :diminish undo-tree-mode
   :init (global-undo-tree-mode))
 
 (use-package evil
@@ -97,6 +98,13 @@
 (use-package exec-path-from-shell)
 
 (use-package selectrum
+  :bind (("C-M-r" . selectrum-repeat)
+         :map selectrum-minibuffer-map
+         ("C-r" . selectrum-select-from-history)
+         ("C-j" . selectrum-next-candidate)
+         ("C-k" . selectrum-previous-candidate))
+  :custom-face
+  (selectrum-current-candidate ((t (:background "DodgerBlue2"))))
   :config
   (selectrum-mode +1))
 
@@ -108,16 +116,39 @@
 
 
 ;; project management
-(use-package projectile)
+(use-package projectile
+  :diminish projectile-mode
+  :bind (("C-c f" . projectile-find-file))
+  :config
+  (projectile-mode +1))
 
 
 ;; UI CONFIG
 
+;; themes
+(use-package doom-themes
+  :defer t)
+(dolist (i custom-enabled-themes)
+  (disable-theme i)) ;; first disable all currently enabled themes
+(load-theme 'doom-snazzy t)
+(doom-themes-visual-bell-config)
+
+(use-package color-theme-sanityinc-tomorrow
+  :defer t
+  :config
+  ;;(color-theme-sanityinc-tomorrow-eighties)
+  )
+
+
 ;; general
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
-;; Show full path in the title bar.
-(setq-default frame-title-format "%b (%f)")
+(set-fringe-mode 10)
+(tooltip-mode -1)
+
+(setq-default frame-title-format "%b (%f)");; Show full path in the title bar.
+
+(use-package diminish) ;; enable displaying of modes
 
 ;; display completion at point
 (use-package posframe)
@@ -138,11 +169,7 @@
                 (top . ,top)))))))
 
 
-;; color-scheme
-(use-package color-theme-sanityinc-tomorrow
-  :config
-  (color-theme-sanityinc-tomorrow-eighties))
-;; fancy mode
+;; fancy modeline
 (use-package doom-modeline
   :init
   (setq doom-modeline-major-mode-icon t
@@ -221,6 +248,7 @@
 
 (use-package golden-ratio
   :after evil
+  :diminish golden-ratio-mode
   :config
   (setq golden-ratio-extra-commands
         (append golden-ratio-extra-commands
@@ -234,11 +262,26 @@
 (use-package evil-anzu
   :after evil)
 
+;; show number of hits when searching
 (use-package anzu
+  :diminish anzu-mode
   :config
   (global-anzu-mode))
 
+(setq vc-follow-symlinks t) ;; don't warn of symlinks
 
+
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 50 1000 1000))
+
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
 
 ;; PROGRAMMING GENERAL
 
@@ -264,8 +307,10 @@
   :bind ("C-x g" . magit-status))
 
 ;; code error checking
+(flymake-mode-off)
 (use-package flycheck
   :config (global-flycheck-mode))
+
 
 ;; yasnippet
 (use-package yasnippet
@@ -421,7 +466,30 @@
         org-ref-pdf-directory "~/Zotero/storage")
   )
 
+(use-package evil-org
+  :after org
+  :hook ((org-mode . evil-org-mode)
+         (org-agenda-mode . evil-org-mode)
+         (evil-org-mode . (lambda () (evil-org-set-key-theme '(navigation todo insert textobjects additional)))))
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys))
+
 (setq org-latex-prefer-user-labels t)
+
+(use-package org-roam
+  :straight t
+  :init
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/roam_notes")
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         :map org-mode-map
+         ("C-M-i"    . completion-at-point))
+  :config
+  (org-roam-setup))
 
 ;; fuzzy search on bib
 ;;(use-package helm-bibtex
@@ -483,7 +551,7 @@
 ;; CUSTOM
 
 (defun set-font-height (height)
-    (set-face-attribute 'default nil :height height))
+  (set-face-attribute 'default nil :height height))
 
 ;; reload buffers etc from previous session
 (desktop-save-mode 1)
