@@ -204,6 +204,10 @@
   (move-text-default-bindings)
   )
 
+(use-package origami
+  :config
+  (global-origami-mode))
+
 ;; mode-line-bell
 ;; change annoying ring with flashing minibuffer
 (use-package mode-line-bell
