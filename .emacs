@@ -65,6 +65,7 @@
 (use-package treemacs
   :config
   (progn
+    (treemacs-set-width 50)
     (treemacs-follow-mode t)
     (treemacs-filewatch-mode t)
     (treemacs-fringe-indicator-mode 'always)
@@ -95,7 +96,9 @@
   :config
   (global-evil-surround-mode 1))
 
-(use-package exec-path-from-shell)
+(use-package exec-path-from-shell
+  :config
+  (exec-path-from-shell-initialize))
 
 (use-package selectrum
   :bind (("C-M-r" . selectrum-repeat)
@@ -226,10 +229,22 @@
 
 ;; UX CONFIG
 
+;; always open frames in same window
+(setq ns-pop-up-frames nil)
+
 (use-package move-text
   :config
   (move-text-default-bindings)
   )
+
+;; make sure to use zsh colors in shell
+(add-hook 'shell-mode-hook
+      (lambda ()
+        (face-remap-set-base 'comint-highlight-prompt :inherit nil)))
+
+;; do not echo commands in conint
+(setq comint-process-echoes t)
+
 
 (use-package origami
   :config
@@ -338,8 +353,15 @@
   :config
   (add-hook 'before-save-hook 'py-isort-before-save))
 
+(use-package sphinx-doc
+  :init
+  (setq sphinx-doc-include-types nil) ;; set to t to include type annotations
+  :hook ((python-mode-hook . sphinx-doc-mode)))
+
 ;; EIN (Emacs IPython Notebook)
 (use-package ein)
+
+
 
 ;; c++
 (add-hook 'c-mode-common-hook #'clang-format+-mode)
@@ -540,13 +562,16 @@
   (progn
     (elpy-enable)
     (setq elpy-rpc-timeout 5000
-          elpy-rpc-virtualenv-path 'current)
+          elpy-rpc-virtualenv-path 'current
+          python-shell-interpreter "ipython"
+          python-shell-interpreter-args "-i --simple-prompt")
     (add-hook 'elpy-mode-hook (lambda ()
                                 (add-hook 'before-save-hook
                                           'elpy-black-fix-code nil t)))))
-
-(setq python-shell-interpreter "ipython"
-      python-shell-interpreter-args "-i --simple-prompt")
+(defun run-python-with-autoreload ()
+  (run-python)
+  (python-shell-send-string "%load_ext autoreload")
+  (python-shell-send-string "%autoreload 0"))
 
 ;; CUSTOM
 
