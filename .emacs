@@ -1,6 +1,5 @@
 ;;; .emacs --- Anselm's emacs config
 ;;; Commentary:
-
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -97,6 +96,7 @@
   (global-evil-surround-mode 1))
 
 (use-package exec-path-from-shell
+  :init (add-to-list 'exec-path "/usr/local/bin")
   :config
   (exec-path-from-shell-initialize))
 
@@ -355,6 +355,10 @@
 
 ;; PROGRAMMING LANGUAGE CONFIG
 
+(use-package clojure-mode)
+(use-package cider)
+(use-package paredit)
+
 ;; python stuff
 
 (use-package elpy
@@ -440,10 +444,10 @@
 
 
 ;; SQL
-(use-package sqlformat
-  :config
-  (progn
-    (add-hook 'sql-mode-hook 'sqlformat-on-save-mode)))
+;;(use-package sqlformat
+;;  :config
+;;  (progn
+;;    (add-hook 'sql-mode-hook 'sqlformat-on-save-mode)))
 
 
 ;; PRODUCTIVITY
