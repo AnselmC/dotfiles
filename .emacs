@@ -299,7 +299,6 @@
 (use-package format-all
   :config
   (add-hook 'js-mode 'format-all-mode)
-  (add-hook 'js-mode 'format-all-mode)
   (add-hook 'ess-r-mode-hook 'format-all-mode)
   (add-hook 'c-mode-common-hook 'format-all-mode)
   (add-hook 'emacs-lisp-mode 'format-all-mode))
@@ -368,6 +367,8 @@
   :config
   (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
 
+;; Javascript
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
 ;; R
 (use-package ess-site
   :straight ess
@@ -545,6 +546,7 @@
   :init
   (progn
     (elpy-enable)
+    (setenv "WORKON_HOME" "~/miniconda3/envs/")
     (setq elpy-rpc-timeout 5000
           elpy-rpc-virtualenv-path 'current)
     (add-hook 'elpy-mode-hook (lambda ()
