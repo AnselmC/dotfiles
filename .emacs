@@ -64,6 +64,7 @@
 (use-package treemacs
   :config
   (progn
+    (treemacs-set-width 50)
     (treemacs-follow-mode t)
     (treemacs-filewatch-mode t)
     (treemacs-fringe-indicator-mode 'always)
@@ -79,8 +80,8 @@
   :after (treemacs magit))
 
 (use-package treemacs-evil
-  :after (treemacs evil))
-
+  :after (treemacs evil)
+  :config (evil-treemacs-state t))
 
 ;; increment/decrement numbers like in vim
 (use-package evil-numbers
@@ -116,6 +117,11 @@
   (selectrum-prescient-mode +1)
   (prescient-persist-mode +1))
 
+(use-package consult
+  :bind (("C-c C-j" . consult-imenu)
+         ("C-x b" . consult-buffer)
+         ("C-x C-b" . consult-buffer)))
+
 
 ;; project management
 (use-package projectile
@@ -150,9 +156,9 @@
 
 (setq-default frame-title-format "%b (%f)");; Show full path in the title bar.
 
-(use-package diminish) ;; enable displaying of modes
+(use-package diminish) ;; enable disabling displaying of modes
 
-;; display completion at point
+;; display completion at poin
 (use-package posframe)
 
 (use-package mini-frame
@@ -168,7 +174,9 @@
                    (left (car posn))
                    (top (cdr posn)))
               `((left . ,left)
-                (top . ,top)))))))
+                (top . ,top)
+                (width . 0.4)
+                (height . 1)))))))
 
 
 ;; fancy modeline
@@ -228,10 +236,22 @@
 
 ;; UX CONFIG
 
+;; always open frames in same window
+(setq ns-pop-up-frames nil)
+
 (use-package move-text
   :config
   (move-text-default-bindings)
   )
+
+;; make sure to use zsh colors in shell
+(add-hook 'shell-mode-hook
+          (lambda ()
+            (face-remap-set-base 'comint-highlight-prompt :inherit nil)))
+
+;; do not echo commands in conint
+(setq comint-process-echoes t)
+
 
 (use-package origami
   :config
@@ -287,6 +307,10 @@
 
 ;; PROGRAMMING GENERAL
 
+;; elisp
+(add-hook 'emacs-lisp-mode (lambda ()
+                             (local-set-key (kbd "C-c d") 'xref-find-definitions)))
+
 ;; ability to use multiple terminal sessions
 (use-package multi-term)
 
@@ -312,6 +336,10 @@
 (use-package flycheck
   :config (global-flycheck-mode))
 
+(use-package flycheck-inline
+  :after flycheck
+  :hook ((flycheck-mode-hook . flycheck-inline-mode)))
+
 
 ;; yasnippet
 (use-package yasnippet
@@ -331,6 +359,25 @@
 (use-package paredit)
 
 ;; python stuff
+
+(use-package elpy
+  :bind (("C-c d" . 'elpy-goto-definition)
+         ("C-c w" . 'elpy-goto-definition-other-window))
+  :init
+  (progn
+    (elpy-enable)
+    (setq elpy-rpc-timeout 5000
+          elpy-rpc-virtualenv-path 'current
+          python-shell-interpreter "ipython"
+          python-shell-interpreter-args "-i --simple-prompt")
+    (add-hook 'elpy-mode-hook (lambda ()
+                                (add-hook 'before-save-hook
+                                          'elpy-black-fix-code nil t)))))
+(defun run-python-with-autoreload ()
+  (run-python)
+  (python-shell-send-string "%load_ext autoreload")
+  (python-shell-send-string "%autoreload 0"))
+
 ;; conda
 (use-package conda
   :init
@@ -343,8 +390,15 @@
   :config
   (add-hook 'before-save-hook 'py-isort-before-save))
 
+(use-package sphinx-doc
+  :init
+  (setq sphinx-doc-include-types nil) ;; set to t to include type annotations
+  :hook ((python-mode-hook . sphinx-doc-mode)))
+
 ;; EIN (Emacs IPython Notebook)
 (use-package ein)
+
+
 
 ;; c++
 (add-hook 'c-mode-common-hook #'clang-format+-mode)
@@ -404,6 +458,7 @@
   :bind (("C-c l" . org-store-link)
          ("C-c C-l" . org-insert-link))
   :config
+  (setq org-hide-emphasis-markers t)
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((python . t)
@@ -557,9 +612,20 @@
       python-shell-interpreter-args "-i --simple-prompt")
 
 ;; CUSTOM
-
 (defun set-font-height (height)
   (set-face-attribute 'default nil :height height))
+
+
+(defun copy-file-path-of-buffer ()
+  (interactive)
+  (let ((file-name (buffer-file-name)))
+    (if file-name
+        (progn
+          (message (concat "Yanked " file-name " to clipboard"))
+          (kill-new file-name))
+      (error "Buffer not visiting a file"))))
+
+(global-set-key (kbd "C-c C-y f") 'copy-file-path-of-buffer)
 
 ;; reload buffers etc from previous session
 (desktop-save-mode 1)
