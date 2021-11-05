@@ -89,7 +89,7 @@
   :bind (("C-c +" . evil-numbers/inc-at-pt)
          ("C-c -" . evil-numbers/dec-at-pt)))
 
-;; surround visually selected area with symbol
+;; surround  with symbol
 (use-package evil-surround
   :after evil
   :config
@@ -106,8 +106,6 @@
          ("C-r" . selectrum-select-from-history)
          ("C-j" . selectrum-next-candidate)
          ("C-k" . selectrum-previous-candidate))
-  :custom-face
-  (selectrum-current-candidate ((t (:background "DodgerBlue2"))))
   :config
   (selectrum-mode +1))
 
@@ -191,7 +189,7 @@
         doom-modeline--battery-status t)
   :config (doom-modeline-mode 1))
 
-;; relative linenumbers
+;; relative line numbers
 (global-display-line-numbers-mode t)
 (setq display-line-numbers-type 'relative)
 (column-number-mode t)
@@ -307,6 +305,22 @@
 
 ;; PROGRAMMING GENERAL
 
+;; LSP
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c")
+  :hook ((clojure-mode . lsp)
+         (python-mode . lsp)
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+(use-package lsp-ui :commands ls-ui-mode)
+
+(use-package which-key
+  :config
+  (which-key-mode))
+
+  
 ;; elisp
 (add-hook 'emacs-lisp-mode (lambda ()
                              (local-set-key (kbd "C-c d") 'xref-find-definitions)))
@@ -333,12 +347,12 @@
 
 ;; code error checking
 (flymake-mode-off)
-(use-package flycheck
-  :config (global-flycheck-mode))
-
 (use-package flycheck-inline
-  :after flycheck
   :hook ((flycheck-mode-hook . flycheck-inline-mode)))
+
+(use-package flycheck
+  :init (global-flycheck-mode))
+
 
 
 ;; yasnippet
@@ -360,19 +374,24 @@
 
 ;; python stuff
 
-(use-package elpy
-  :bind (("C-c d" . 'elpy-goto-definition)
-         ("C-c w" . 'elpy-goto-definition-other-window))
-  :init
-  (progn
-    (elpy-enable)
-    (setq elpy-rpc-timeout 5000
-          elpy-rpc-virtualenv-path 'current
-          python-shell-interpreter "ipython"
-          python-shell-interpreter-args "-i --simple-prompt")
-    (add-hook 'elpy-mode-hook (lambda ()
-                                (add-hook 'before-save-hook
-                                          'elpy-black-fix-code nil t)))))
+(use-package lsp-jedi
+  :after lsp-mode
+  :config
+  (add-to-list 'lsp-enabled-clients 'jedi))
+;;(use-package elpy
+;;  :bind (("C-c d" . 'elpy-goto-definition)
+;;         ("C-c w" . 'elpy-goto-definition-other-window))
+;;  :init
+;;  (progn
+;;    (elpy-enable)
+;;    (setenv "WORKON_HOME" "~/miniconda3/envs/")
+;;    (setq elpy-rpc-timeout 5000
+;;          elpy-rpc-virtualenv-path 'current
+;;          python-shell-interpreter "ipython"
+;;          python-shell-interpreter-args "-i --simple-prompt")
+;;    (add-hook 'elpy-mode-hook (lambda ()
+;;                                (add-hook 'before-save-hook
+;;                                          'elpy-black-fix-code nil t)))))
 (defun run-python-with-autoreload ()
   (run-python)
   (python-shell-send-string "%load_ext autoreload")
@@ -594,22 +613,6 @@
 
 ;; Revert (update) buffers automatically when underlying files are changed externally.
 (global-auto-revert-mode t)
-
-(use-package elpy
-  :bind (("C-c d" . 'elpy-goto-definition)
-         ("C-c w" . 'elpy-goto-definition-other-window))
-  :init
-  (progn
-    (elpy-enable)
-    (setenv "WORKON_HOME" "~/miniconda3/envs/")
-    (setq elpy-rpc-timeout 5000
-          elpy-rpc-virtualenv-path 'current)
-    (add-hook 'elpy-mode-hook (lambda ()
-                                (add-hook 'before-save-hook
-                                          'elpy-black-fix-code nil t)))))
-
-(setq python-shell-interpreter "ipython"
-      python-shell-interpreter-args "-i --simple-prompt")
 
 ;; CUSTOM
 (defun set-font-height (height)
