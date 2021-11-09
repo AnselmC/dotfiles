@@ -34,7 +34,6 @@
   (load bootstrap-file nil 'nomessage))
 
 (setq straight-use-package-by-default t) ;; use with use-package
-
 (straight-use-package 'use-package)
 
 ;; NAVIGATION
@@ -57,11 +56,13 @@
 
 (use-package evil-collection
   :after evil
+  :diminish evil-collection-unimpaired-mode
   :config
   ;;(global-evil-visualstar-mode)
   (evil-collection-init))
 
 (use-package treemacs
+  :demand t
   :config
   (progn
     (treemacs-set-width 50)
@@ -96,11 +97,13 @@
   (global-evil-surround-mode 1))
 
 (use-package exec-path-from-shell
+  :demand t
   :init (add-to-list 'exec-path "/usr/local/bin")
   :config
   (exec-path-from-shell-initialize))
 
 (use-package selectrum
+  :demand t
   :bind (("C-M-r" . selectrum-repeat)
          :map selectrum-minibuffer-map
          ("C-r" . selectrum-select-from-history)
@@ -132,18 +135,8 @@
 ;; UI CONFIG
 
 ;; themes
-(use-package doom-themes
-  :defer t)
-(dolist (i custom-enabled-themes)
-  (disable-theme i)) ;; first disable all currently enabled themes
-(load-theme 'doom-snazzy t)
-(doom-themes-visual-bell-config)
-
-(use-package color-theme-sanityinc-tomorrow
-  :defer t
-  :config
-  ;;(color-theme-sanityinc-tomorrow-eighties)
-  )
+(use-package doom-themes :defer t)
+(consult-theme 'doom-solarized-light)
 
 
 ;; general
@@ -154,7 +147,8 @@
 
 (setq-default frame-title-format "%b (%f)");; Show full path in the title bar.
 
-(use-package diminish) ;; enable disabling displaying of modes
+(use-package diminish
+  :demand t) ;; enable disabling displaying of modes
 
 ;; display completion at poin
 (use-package posframe)
@@ -306,21 +300,39 @@
 ;; PROGRAMMING GENERAL
 
 ;; LSP
+;; python
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt")
+
+(use-package lsp-jedi
+  :config
+  (add-to-list 'lsp-enabled-clients 'jedi))
+
+
 (use-package lsp-mode
+  :diminish eldoc-mode
   :init
-  (setq lsp-keymap-prefix "C-c")
+  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
-(use-package lsp-ui :commands ls-ui-mode)
+(use-package lsp-ui
+  :demand t
+  :after lsp-mode
+  :init
+  (setq lsp-ui-doc-enable nil
+        lsp-ui-doc-position 'at-point)
+  :commands lsp-ui-mode)
 
 (use-package which-key
+  :diminish which-key-mode
   :config
   (which-key-mode))
 
-  
+
 ;; elisp
 (add-hook 'emacs-lisp-mode (lambda ()
                              (local-set-key (kbd "C-c d") 'xref-find-definitions)))
@@ -330,34 +342,33 @@
 
 ;; code completion
 (use-package company
+  :diminish company-mode
   :config
   (global-company-mode))
 
 ;; auto-formatting
 (use-package format-all
   :config
-  (add-hook 'js-mode 'format-all-mode)
-  (add-hook 'ess-r-mode-hook 'format-all-mode)
-  (add-hook 'c-mode-common-hook 'format-all-mode)
-  (add-hook 'emacs-lisp-mode 'format-all-mode))
+  (add-hook 'python-mode 'format-all-mode 'format-all-ensure-formatter)
+  (add-hook 'js-mode 'format-all-mode 'format-all-ensure-formatter)
+  (add-hook 'ess-r-mode-hook 'format-all-mode 'format-all-ensure-formatter)
+  (add-hook 'c-mode-common-hook 'format-all-mode 'format-all-ensure-formatter)
+  (add-hook 'emacs-lisp-mode 'format-all-mode 'format-all-ensure-formatter))
 
 ;; git
 (use-package magit
+  :diminish smerge-mode
   :bind ("C-x g" . magit-status))
 
 ;; code error checking
 (flymake-mode-off)
-(use-package flycheck-inline
-  :hook ((flycheck-mode-hook . flycheck-inline-mode)))
-
 (use-package flycheck
   :init (global-flycheck-mode))
-
-
 
 ;; yasnippet
 (use-package yasnippet
   :after yasnippet-snippets
+  :diminish yas-minor-mode
   :config
   (yas-global-mode 1))
 (use-package yasnippet-snippets) ;; actual snippets
@@ -374,10 +385,6 @@
 
 ;; python stuff
 
-(use-package lsp-jedi
-  :after lsp-mode
-  :config
-  (add-to-list 'lsp-enabled-clients 'jedi))
 ;;(use-package elpy
 ;;  :bind (("C-c d" . 'elpy-goto-definition)
 ;;         ("C-c w" . 'elpy-goto-definition-other-window))
@@ -400,7 +407,7 @@
 ;; conda
 (use-package conda
   :init
-  (setq conda-env-home-directory (expand-file-name "~/miniconda3"))
+  (setq conda-anaconda-home (expand-file-name "~/miniconda3"))
   :config
   (conda-env-initialize-interactive-shells))
 
@@ -442,6 +449,7 @@
 
 ;; Javascript
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
+
 ;; R
 (use-package ess-site
   :straight ess
@@ -549,6 +557,7 @@
 
 (use-package evil-org
   :after org
+  :diminish 'evil-org-mode
   :hook ((org-mode . evil-org-mode)
          (org-agenda-mode . evil-org-mode)
          (evil-org-mode . (lambda () (evil-org-set-key-theme '(navigation todo insert textobjects additional)))))
@@ -631,7 +640,7 @@
 (global-set-key (kbd "C-c C-y f") 'copy-file-path-of-buffer)
 
 ;; reload buffers etc from previous session
-(desktop-save-mode 1)
+(desktop-save-mode nil)
 
 (provide '.emacs)
 ;;; .emacs ends here
