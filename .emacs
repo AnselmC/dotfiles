@@ -287,6 +287,7 @@
 
 ;; The default is 800 kilobytes.  Measured in bytes.
 (setq gc-cons-threshold (* 50 1000 1000))
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
 
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
@@ -311,11 +312,15 @@
 
 
 (use-package lsp-mode
+  :demand t
   :diminish eldoc-mode
   :init
-  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
+  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map
+  (add-to-list 'lsp-enabled-clients 'ts-ls)
+  (add-to-list 'lsp-enabled-clients 'clojure-lsp)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
+         (web-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
@@ -348,9 +353,11 @@
 
 ;; auto-formatting
 (use-package format-all
+  :demand t
   :config
   (add-hook 'python-mode 'format-all-mode 'format-all-ensure-formatter)
   (add-hook 'js-mode 'format-all-mode 'format-all-ensure-formatter)
+  (add-hook 'web-mode 'format-all-mode 'format-all-ensure-formatter)
   (add-hook 'ess-r-mode-hook 'format-all-mode 'format-all-ensure-formatter)
   (add-hook 'c-mode-common-hook 'format-all-mode 'format-all-ensure-formatter)
   (add-hook 'emacs-lisp-mode 'format-all-mode 'format-all-ensure-formatter))
@@ -380,7 +387,10 @@
 ;; PROGRAMMING LANGUAGE CONFIG
 
 (use-package clojure-mode)
-(use-package cider)
+(use-package cider
+  :init
+  (setq cider-auto-jump-to-error nil))
+
 (use-package paredit)
 
 ;; python stuff
@@ -447,8 +457,12 @@
   :config
   (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
 
-;; Javascript
+;; Web
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
+
+(use-package web-mode
+  :mode (("\\.html\\'" . web-mode)
+         ("\\.tsx?\\'" . web-mode)))
 
 ;; R
 (use-package ess-site
