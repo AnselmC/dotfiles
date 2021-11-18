@@ -307,22 +307,28 @@
       python-shell-interpreter-args "-i --simple-prompt")
 
 (use-package lsp-jedi
+  :disabled
   :config
   (add-to-list 'lsp-enabled-clients 'jedi))
-
 
 (use-package lsp-mode
   :demand t
   :diminish eldoc-mode
   :init
-  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map
+  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
   (add-to-list 'lsp-enabled-clients 'ts-ls)
   (add-to-list 'lsp-enabled-clients 'clojure-lsp)
+  (add-to-list 'lsp-enabled-clients 'clangd)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
          (web-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
+
+(use-package lsp-py
+    :init
+    (add-to-list 'lsp-enabled-clients 'lsp-py)
+    :straight (lsp-py :type git :host nil :repo "git@github.com:AnselmC/lsp-py"))
 
 (use-package lsp-ui
   :demand t
@@ -369,6 +375,7 @@
 
 ;; code error checking
 (flymake-mode-off)
+(diminish flymake-mode)
 (use-package flycheck
   :init (global-flycheck-mode))
 
@@ -475,7 +482,15 @@
                                'electric-layout-mode)))
 
 ;; CSV
-(use-package csv-mode)
+(defun csv-open-link-at-point()
+  (interactive)
+  (let* ((start (save-excursion (re-search-backward ",")))
+         (end (save-excursion (re-search-forward ",")))
+         (link (buffer-substring-no-properties  (+ start 1) (- end 1))))
+    (browse-url link)))
+(use-package csv-mode
+  :bind (("C-c C-o" . csv-open-link-at-point)) 
+  )
 
 ;; YAML
 (use-package yaml-mode
@@ -561,7 +576,9 @@
         org-babel-python-command "python3"
         )
   )
-
+(use-package org-bullets
+  :config
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 (use-package org-ref
   :config
   (setq org-ref-bibliography-notes "~/Documents/private/uni/notes.org"
@@ -614,9 +631,10 @@
              ispell-buffer))
 
 (use-package thesaurus
-  :straight (thesaurus :type git :host github :repo "AnselmC/thesaurus.el"))
+  :straight (thesaurus :type git :host nil :repo "git@github.com:AnselmC/thesaurus.el"))
 
 (use-package flyspell
+  :disabled
   :config (flyspell-mode t))
 
 
@@ -655,6 +673,8 @@
 
 ;; reload buffers etc from previous session
 (desktop-save-mode nil)
+
+
 
 (provide '.emacs)
 ;;; .emacs ends here
