@@ -25,7 +25,8 @@
 
 ;; evil-mode
 (use-package undo-tree
-  :diminish undo-tree-mode
+  :demand t
+  :diminish 'undo-tree-mode
   :init (global-undo-tree-mode))
 
 (use-package evil
@@ -430,7 +431,7 @@
 
 ;; git
 (use-package magit
-  :diminish smerge-mode
+  :diminish 'smerge-mode
   :bind ("C-x g" . magit-status))
 
 (use-package forge
