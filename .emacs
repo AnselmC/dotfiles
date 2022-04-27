@@ -5,17 +5,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-enabled-themes '(sanityinc-tomorrow-eighties))
- '(custom-safe-themes
-   '("bb08c73af94ee74453c90422485b29e5643b73b05e8de029a6909af6a3fb3f58" "628278136f88aa1a151bb2d6c8a86bf2b7631fbea5f0f76cba2a0079cd910f7d" default))
- '(elpy-syntax-check-command "pylint")
- '(helm-minibuffer-history-key "M-p")
- '(org-agenda-files '("~/todo.org")))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
+ '(org-agenda-files
+   '("~/roam_notes/20210824094614-verity.org" "/Users/anselm-scandit/roam_notes/20210824094221-dhl_australia.org" "/Users/anselm-scandit/roam_notes/20210824094858-sams.org" "/Users/anselm-scandit/roam_notes/20210824094921-maf.org" "/Users/anselm-scandit/roam_notes/20210824095127-misc.org" "/Users/anselm-scandit/roam_notes/20210824094711-shelf.org" "/Users/anselm-scandit/roam_notes/20210824094949-starbucks_poc.org" "/Users/anselm-scandit/todo.org"))
  )
 
 ;;; Code:
@@ -56,10 +47,10 @@
 
 (use-package evil-collection
   :after evil
-  :diminish evil-collection-unimpaired-mode
+  :diminish 'evil-collection-unimpaired-mode
   :config
-  ;;(global-evil-visualstar-mode)
   (evil-collection-init))
+
 
 (use-package treemacs
   :demand t
@@ -126,7 +117,7 @@
 
 ;; project management
 (use-package projectile
-  :diminish projectile-mode
+  :diminish 'projectile-mode
   :bind (("C-c f" . projectile-find-file))
   :config
   (projectile-mode +1))
@@ -204,6 +195,7 @@
   (dimmer-mode t)
   )
 
+(use-package vterm)
 ;; ansi colors in compilation mode and shells
 (use-package xterm-color
   :init
@@ -222,9 +214,6 @@
 ;; Show matching parantheses
 (show-paren-mode t)
 
-;; render emojis, i.e. :smile:
-(use-package emojify
-  :hook (after-init . global-emojify-mode))
 
 ;; UX CONFIG
 
@@ -262,7 +251,7 @@
 
 (use-package golden-ratio
   :after evil
-  :diminish golden-ratio-mode
+  :diminish 'golden-ratio-mode
   :config
   (setq golden-ratio-extra-commands
         (append golden-ratio-extra-commands
@@ -278,7 +267,7 @@
 
 ;; show number of hits when searching
 (use-package anzu
-  :diminish anzu-mode
+  :diminish 'anzu-mode
   :config
   (global-anzu-mode))
 
@@ -297,6 +286,7 @@
                               (time-subtract after-init-time before-init-time)))
                      gcs-done)))
 
+(use-package restclient)
 ;; PROGRAMMING GENERAL
 
 ;; LSP
@@ -305,20 +295,48 @@
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt")
 
+(setq root-dir (vc-root-dir))
+root-dir
+(setq manage-py-file (concat root-dir "manage.py"))
+(file-exists-p manage-py-file)
+
+(run-python (concat manage-py-file " shell"))
+
+(defun start-django-shell ()
+    (interactive)
+    (let* ((root-dir (vc-root-dir))
+           (manage-py-file (concat root-dir "manage.py")))
+      (if (file-exists-p manage-py-file)
+          (run-python (concat manage-py-file " shell"))
+        (message (concat "manage.py doesn't exist in " root-dir)))))
+
+(use-package consult-lsp)
+
 (use-package lsp-jedi
   :disabled
   :config
   (add-to-list 'lsp-enabled-clients 'jedi))
 
+
+(use-package lsp-java
+  :config
+(add-to-list 'lsp-enabled-clients 'jdtls))
+
+
 (use-package lsp-mode
-  :diminish eldoc-mode
-  :init
+  :diminish (eldoc-mode lsp-lens-mode)
+  :config
   (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
   (add-to-list 'lsp-enabled-clients 'clangd)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
+         (java-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
+
+(use-package lsp-treemacs
+  :config
+  (lsp-treemacs-sync-mode 1))
 
 (use-package lsp-py
     :init
@@ -329,7 +347,8 @@
   :demand t
   :after lsp-mode
   :init
-  (setq lsp-ui-doc-enable nil
+  (setq lsp-ui-doc-enable t
+        lsp-ui-doc-delay 2.0
         lsp-ui-doc-position 'at-point)
   :commands lsp-ui-mode)
 
@@ -354,21 +373,27 @@
 
 ;; auto-formatting
 (use-package format-all
-  :config
-  (add-hook 'python-mode 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'js-mode 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'ess-r-mode-hook 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'c-mode-common-hook 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'emacs-lisp-mode 'format-all-mode 'format-all-ensure-formatter))
+  :diminish format-all-mode
+  :hook ((format-all-mode . format-all-ensure-formatter)
+         (python-mode . format-all-mode)))
+  ;;:config
+  ;;(add-hook 'python-mode 'format-all-mode 'format-all-ensure-formatter)
+  ;;(add-hook 'js-mode 'format-all-mode 'format-all-ensure-formatter)
+  ;;(add-hook 'ess-r-mode-hook 'format-all-mode 'format-all-ensure-formatter)
+  ;;(add-hook 'c-mode-common-hook 'format-all-mode 'format-all-ensure-formatter)
+  ;;(add-hook 'emacs-lisp-mode 'format-all-mode 'format-all-ensure-formatter))
 
 ;; git
 (use-package magit
   :diminish smerge-mode
   :bind ("C-x g" . magit-status))
 
+(use-package forge
+  :after magit)
+
 ;; code error checking
 (flymake-mode-off)
-(diminish flymake-mode)
+(diminish 'flymake-mode)
 (use-package flycheck
   :init (global-flycheck-mode))
 
@@ -496,11 +521,77 @@
 ;; PRODUCTIVITY
 
 ;; org-mode
+;;(let* ((variable-tuple
+;;        (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+;;              ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+;;              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+;;              ((x-list-fonts "Verdana")         '(:font "Verdana"))
+;;              ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+;;              (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+;;       (base-font-color     (face-foreground 'default nil 'default))
+;;       (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+;;
+;;  (let* ((variable-tuple
+;;          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+;;                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+;;                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+;;                ((x-list-fonts "Verdana")         '(:font "Verdana"))
+;;                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+;;                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+;;         (base-font-color     (face-foreground 'default nil 'default))
+;;         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+;;
+;;    (custom-theme-set-faces
+;;     'user
+;;     `(org-level-8 ((t (,@headline ,@variable-tuple))))
+;;     `(org-level-7 ((t (,@headline ,@variable-tuple))))
+;;     `(org-level-6 ((t (,@headline ,@variable-tuple))))
+;;     `(org-level-5 ((t (,@headline ,@variable-tuple))))
+;;     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
+;;     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
+;;     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
+;;     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
+;;     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+;;
+;;  (custom-theme-set-faces
+;;   'user
+;;   `(org-level-8 ((t (,@headline ,@variable-tuple))))
+;;   `(org-level-7 ((t (,@headline ,@variable-tuple))))
+;;   `(org-level-6 ((t (,@headline ,@variable-tuple))))
+;;   `(org-level-5 ((t (,@headline ,@variable-tuple))))
+;;   `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.0))))
+;;   `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.05))))
+;;   `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.1))))
+;;   `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.25))))
+;;   `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+;;(custom-theme-set-faces
+;; 'user
+;; '(variable-pitch ((t (:family "ETBembo" :height 120 :weight thin))))
+;; '(fixed-pitch ((t ( :family "Fira Code Retina" :height 120)))))
+;;(add-hook 'org-mode-hook 'variable-pitch-mode)
+;;(add-hook 'org-mode-hook 'visual-line-mode)
+;;(custom-theme-set-faces
+;; 'user
+;; '(org-block ((t (:inherit fixed-pitch))))
+;; '(org-code ((t (:inherit (shadow fixed-pitch)))))
+;; '(org-document-info ((t (:foreground "dark orange"))))
+;; '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+;; '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+;; '(org-link ((t (:foreground "royal blue" :underline t))))
+;; '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+;; '(org-property-value ((t (:inherit fixed-pitch))) t)
+;; '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+;; '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+;; '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+;; '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 (use-package org
   :bind (("C-c l" . org-store-link)
          ("C-c C-l" . org-insert-link))
   :config
   (setq org-hide-emphasis-markers t)
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((python . t)
@@ -640,6 +731,9 @@
 
 ;; Revert (update) buffers automatically when underlying files are changed externally.
 (global-auto-revert-mode t)
+
+;; Remember last minibuffer commands
+(savehist-mode 1)
 
 ;; CUSTOM
 (defun set-font-height (height)
