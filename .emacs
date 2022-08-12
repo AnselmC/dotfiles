@@ -1,13 +1,5 @@
 ;;; .emacs --- Anselm's emacs config
 ;;; Commentary:
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-agenda-files
-   '("~/roam_notes/20210824094614-verity.org" "/Users/anselm-scandit/roam_notes/20210824094221-dhl_australia.org" "/Users/anselm-scandit/roam_notes/20210824094858-sams.org" "/Users/anselm-scandit/roam_notes/20210824094921-maf.org" "/Users/anselm-scandit/roam_notes/20210824095127-misc.org" "/Users/anselm-scandit/roam_notes/20210824094711-shelf.org" "/Users/anselm-scandit/roam_notes/20210824094949-starbucks_poc.org" "/Users/anselm-scandit/todo.org"))
- )
 
 ;;; Code:
 ;; straight.el for package management (https://github.com/raxod502/straight.el)
@@ -51,6 +43,11 @@
   :config
   (evil-collection-init))
 
+(use-package evil-goggles
+  :config
+  (evil-goggles-mode)
+  (evil-goggles-use-diff-faces))
+
 
 (use-package treemacs
   :demand t
@@ -89,9 +86,12 @@
 
 (use-package exec-path-from-shell
   :demand t
-  :init (add-to-list 'exec-path "/usr/local/bin")
+  :init
+  (add-to-list 'exec-path "/usr/local/bin")
   :config
-  (exec-path-from-shell-initialize))
+  (exec-path-from-shell-initialize)
+  (add-to-list 'exec-path-from-shell-variables "LSP_USE_PLISTS")
+  )
 
 (use-package selectrum
   :demand t
@@ -127,7 +127,6 @@
 
 ;; themes
 (use-package doom-themes :defer t)
-(consult-theme 'doom-solarized-light)
 
 
 ;; general
@@ -290,26 +289,37 @@
 (use-package restclient)
 ;; PROGRAMMING GENERAL
 
-;; LSP
 ;; python
 
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt")
 
-(setq root-dir (vc-root-dir))
-root-dir
-(setq manage-py-file (concat root-dir "manage.py"))
-(file-exists-p manage-py-file)
-
-(run-python (concat manage-py-file " shell"))
-
 (defun start-django-shell ()
-    (interactive)
-    (let* ((root-dir (vc-root-dir))
-           (manage-py-file (concat root-dir "manage.py")))
-      (if (file-exists-p manage-py-file)
-          (run-python (concat manage-py-file " shell"))
-        (message (concat "manage.py doesn't exist in " root-dir)))))
+  (interactive)
+  (let* ((root-dir (vc-root-dir))
+         (manage-py-file (concat root-dir "manage.py")))
+    (if (file-exists-p manage-py-file)
+        (run-python (concat manage-py-file " shell"))
+      (message (concat "manage.py doesn't exist in " root-dir)))))
+
+;; LSP
+(use-package lsp-mode
+  :diminish (eldoc-mode lsp-lens-mode)
+  :demand t
+  :init
+  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
+  :config
+  (setq lsp-use-plists t)
+  (add-to-list 'lsp-enabled-clients 'ts-ls)
+  (add-to-list 'lsp-enabled-clients 'clojure-lsp)
+  (add-to-list 'lsp-enabled-clients 'clangd)
+  (add-to-list 'lsp-enabled-clients 'lsp-py)
+  :hook ((clojure-mode . lsp)
+         (python-mode . lsp)
+         (java-mode . lsp)
+         (web-mode . lsp)
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
 
 (use-package consult-lsp)
 
@@ -318,35 +328,17 @@ root-dir
   :config
   (add-to-list 'lsp-enabled-clients 'jedi))
 
-
-(use-package lsp-java
-  :config
-(add-to-list 'lsp-enabled-clients 'jdtls))
-
-
-(use-package lsp-mode
-  :diminish (eldoc-mode lsp-lens-mode)
-  :demand t
-  :init
-  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
-  (add-to-list 'lsp-enabled-clients 'ts-ls)
-  (add-to-list 'lsp-enabled-clients 'clojure-lsp)
-  (add-to-list 'lsp-enabled-clients 'clangd)
-  :hook ((clojure-mode . lsp)
-         (python-mode . lsp)
-         (java-mode . lsp)
-         (web-mode . lsp)
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
-
 (use-package lsp-treemacs
   :config
   (lsp-treemacs-sync-mode 1))
 
 (use-package lsp-py
-    :init
-    (add-to-list 'lsp-enabled-clients 'lsp-py)
-    :straight (lsp-py :type git :host nil :repo "git@github.com:AnselmC/lsp-py"))
+  :init
+  (add-to-list 'lsp-enabled-clients 'lsp-py)
+  :config
+  (setq lsp-py-flake8-enabled nil)
+  (setq lsp-py-pydocstyle-enabled nil)
+  :straight (lsp-py :type git :host nil :repo "git@github.com:AnselmC/lsp-py"))
 
 (use-package lsp-ui
   :demand t
@@ -354,7 +346,12 @@ root-dir
   :init
   (setq lsp-ui-doc-enable t
         lsp-ui-doc-delay 2.0
-        lsp-ui-doc-position 'at-point)
+        lsp-ui-doc-position 'at-point
+        lsp-ui-peek-enable t)
+
+  :bind (:map lsp-ui-peek-mode-map
+              ("C-j" . lsp-ui-peek--select-next)
+              ("C-k" . lsp-ui-peek--select-prev))
   :commands lsp-ui-mode)
 
 (use-package which-key
@@ -512,7 +509,7 @@ root-dir
          (link (buffer-substring-no-properties  (+ start 1) (- end 1))))
     (browse-url link)))
 (use-package csv-mode
-  :bind (("C-c C-o" . csv-open-link-at-point)) 
+  :bind (("C-c C-o" . csv-open-link-at-point))
   )
 
 ;; YAML
@@ -739,6 +736,7 @@ root-dir
 (setq
  make-backup-files nil  ; stop creating backup~ files
  auto-save-default nil  ; stop creating #autosave# files
+ undo-tree-auto-save-history nil ; stop creating ~undo-tree~ files
  create-lockfiles nil)  ; stop creating .# files
 
 ;; Revert (update) buffers automatically when underlying files are changed externally.
@@ -750,6 +748,12 @@ root-dir
 ;; CUSTOM
 (defun set-font-height (height)
   (set-face-attribute 'default nil :height height))
+
+(defun kill-removed-buffers ()
+  (interactive)
+  (let ((to-kill (-remove 'buffer-backed-by-file-p (buffer-list))))
+    (mapc 'kill-buffer to-kill)
+    (message "Killed %s buffers" (length to-kill))))
 
 
 (defun copy-file-path-of-buffer ()
