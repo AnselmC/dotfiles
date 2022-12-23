@@ -494,6 +494,15 @@
 ;; default to 4 spaces per tab
 (setq-default tab-width 4 indent-tabs-mode nil)
 
+(use-package tree-sitter
+  :diminish tree-sitter-mode
+  :config
+  (global-tree-sitter-mode)
+  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode))
+(use-package tree-sitter-langs
+  :after tree-sitter)
+
+
 
 ;; PROGRAMMING LANGUAGE CONFIG
 
@@ -680,8 +689,10 @@
 (use-package org
   :bind (("C-c l" . org-store-link)
          ("C-c C-l" . org-insert-link))
+
+  :custom
+  (org-hide-emphasis-markers t)
   :config
-  (setq org-hide-emphasis-markers t)
   (font-lock-add-keywords 'org-mode
                           '(("^ *\\([-]\\) "
                              (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
@@ -800,11 +811,11 @@
              ispell-region
              ispell-buffer))
 
-(use-package thesaurus
-  :straight (thesaurus :type git :host nil :repo "git@github.com:AnselmC/thesaurus.el"))
+(use-package le-thesaurus
+  :straight (le-thesaurus :type git :host nil :repo "https://github.com/AnselmC/le-thesaurus.el.git"))
 
 (use-package flyspell
-  :disabled
+  :disabled t
   :config (flyspell-mode t))
 
 
@@ -832,6 +843,16 @@
 ;; CUSTOM
 (defun set-font-height (height)
   (set-face-attribute 'default nil :height height))
+
+(set-font-height 145)
+
+(defun buffer-backed-by-file-p (buffer)
+  (let ((backing-file (buffer-file-name buffer)))
+    (if (buffer-modified-p buffer)
+        t
+      (if backing-file
+          (file-exists-p (buffer-file-name buffer))
+        t))))
 
 (defun kill-removed-buffers ()
   (interactive)
