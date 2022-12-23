@@ -146,7 +146,11 @@
 ;; UI CONFIG
 
 ;; themes
-(use-package doom-themes :defer t)
+(use-package doom-themes
+  :disabled t
+  )
+
+(consult-theme 'modus-vivendi)
 
 
 ;; general
@@ -157,28 +161,8 @@
 
 (setq-default frame-title-format "%b (%f)");; Show full path in the title bar.
 
-(use-package diminish
-  :demand t) ;; enable disabling displaying of modes
-
-;; display completion at poin
-(use-package posframe)
-
-(use-package mini-frame
-  :after (selectrum posframe)
-  :config
-  (progn
-    (mini-frame-mode +1)
-    (setq selectrum-display-action nil)
-    (setq mini-frame-show-parameters
-          (lambda ()
-            (let* ((info (posframe-poshandler-argbuilder))
-                   (posn (posframe-poshandler-point-bottom-left-corner info))
-                   (left (car posn))
-                   (top (cdr posn)))
-              `((left . ,left)
-                (top . ,top)
-                (width . 0.4)
-                (height . 1)))))))
+;; enable disabling displaying of modes
+(use-package diminish)
 
 
 ;; fancy modeline
@@ -205,14 +189,37 @@
 (add-hook 'find-file-hook 'display-line-numbers-equalize)
 
 ;;highlight current buffer
+(defun advise-dimmer-config-change-handler ()
+  "Advise to only force process if no predicate is truthy."
+  (let ((ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
+                         dimmer-prevent-dimming-predicates)))
+    (unless ignore
+      (when (fboundp 'dimmer-process-all)
+        (dimmer-process-all t)))))
+
+(defun corfu-frame-p ()
+  "Check if the buffer is a corfu frame buffer."
+  (string-match-p "\\` \\*corfu" (buffer-name)))
+
+(defun dimmer-configure-corfu ()
+  "Convenience settings for corfu users."
+  (add-to-list
+   'dimmer-prevent-dimming-predicates
+   #'corfu-frame-p))
+
 (use-package dimmer
-  :init
+  :custom
+  (dimmer-fraction 0.4)
+  :config
+  (advice-add
+   'dimmer-config-change-handler
+   :override 'advise-dimmer-config-change-handler)
+  (dimmer-configure-corfu)
   (dimmer-configure-magit)
   (dimmer-configure-org)
-  (setq dimmer-fraction 0.4)
-  :config
-  (dimmer-mode t)
-  )
+  (dimmer-configure-which-key)
+  (dimmer-mode t))
+
 
 (use-package vterm)
 ;; ansi colors in compilation mode and shells
@@ -322,43 +329,71 @@
         (run-python (concat manage-py-file " shell"))
       (message (concat "manage.py doesn't exist in " root-dir)))))
 
+(use-package pyvenv)
 ;; LSP
 (use-package lsp-mode
   :diminish (eldoc-mode lsp-lens-mode)
   :demand t
+  :custom
+  (lsp-completion-provider :none)
+  (lsp-use-plists t)
+  (lsp-pylsp-plugins-pycodestyle-enabled nil)
+  (lsp-pylsp-plugins-pydocstyle-enabled nil)
+  (lsp-pylsp-plugins-pylint-enabled t)
+  (lsp-pylsp-plugins-flake8-enabled nil)
   :init
   (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
+  (defun my/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(orderless))) ;; Configure orderless
   :config
-  (setq lsp-use-plists t)
   (add-to-list 'lsp-enabled-clients 'ts-ls)
   (add-to-list 'lsp-enabled-clients 'clojure-lsp)
   (add-to-list 'lsp-enabled-clients 'clangd)
-  (add-to-list 'lsp-enabled-clients 'lsp-py)
+  (add-to-list 'lsp-enabled-clients 'pylsp)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
          (java-mode . lsp)
          (web-mode . lsp)
-         (lsp-mode . lsp-enable-which-key-integration))
+         (lsp-mode . lsp-enable-which-key-integration)
+         (lsp-completion-mode . my/lsp-mode-setup-completion))
   :commands lsp)
 
-(use-package consult-lsp)
-
-(use-package lsp-jedi
-  :disabled
+(use-package dap-mode
   :config
-  (add-to-list 'lsp-enabled-clients 'jedi))
+  (require 'dap-python)
+  :custom
+  (dap-python-debugger "debugpy")
+  :init
+  (dap-mode 1)
+  (dap-ui-mode 1))
+
+(use-package dap-python
+  :after dap-mode)
+
+(defun dap-python--pyenv-executable-find (command)
+    (executable-find command))
+
+(setq lsp-completion-provider :none)
+
+(use-package consult-lsp)
 
 (use-package lsp-treemacs
   :config
   (lsp-treemacs-sync-mode 1))
 
 (use-package lsp-py
-  :init
-  (add-to-list 'lsp-enabled-clients 'lsp-py)
-  :config
-  (setq lsp-py-flake8-enabled nil)
-  (setq lsp-py-pydocstyle-enabled nil)
-  :straight (lsp-py :type git :host nil :repo "git@github.com:AnselmC/lsp-py"))
+  :custom
+  (lsp-py-flake8-enabled nil)
+  (lsp-py-pyflakes-enabled nil)
+  (lsp-py-pydocstyle-enabled nil)
+  (lsp-py-pycodestyle-enabled nil)
+  (lsp-py-pylint-enabled t)
+  (lsp-py-jedi-completion-enabled t)
+  (lsp-py-jedi-definition-enabled t)
+  (lsp-py-jedi-hover-enabled t)
+  (lsp-py-jedi-references-enabled t)
+  :straight (lsp-py :type git :host nil :repo "https://github.com/AnselmC/lsp-py.git"))
 
 (use-package lsp-ui
   :demand t
@@ -384,14 +419,41 @@
 (add-hook 'emacs-lisp-mode (lambda ()
                              (local-set-key (kbd "C-c d") 'xref-find-definitions)))
 
+
+
 ;; ability to use multiple terminal sessions
 (use-package multi-term)
 
 ;; code completion
-(use-package company
-  :diminish company-mode
-  :config
-  (global-company-mode))
+
+(use-package orderless
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles basic partial-completion)))))
+
+(use-package corfu
+
+  ;; Optional customizations
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ;; Enable auto completion
+  (corfu-auto-prefix 2)          ;; Completion after two characters
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; nDisable current candidate preview
+  ;; (corfu-preselect-first nil)    ;; Disable candidate preselection
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+  :bind
+  ;; Configure SPC for separator insertion
+  (:map corfu-map ("M-SPC" . corfu-insert-separator))
+  :init
+  (global-corfu-mode))
+
 
 ;; auto-formatting
 (use-package format-all
@@ -412,6 +474,8 @@
 
 (use-package forge
   :after magit)
+
+
 
 ;; code error checking
 (flymake-mode-off)
