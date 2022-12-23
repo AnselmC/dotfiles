@@ -18,6 +18,7 @@
        int-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+
 (setq straight-use-package-by-default t) ;; use with use-package
 (straight-use-package 'use-package)
 
@@ -92,30 +93,47 @@
   (add-to-list 'exec-path "/usr/local/bin")
   :config
   (exec-path-from-shell-initialize)
-  (add-to-list 'exec-path-from-shell-variables "LSP_USE_PLISTS")
-  )
+  (add-to-list 'exec-path-from-shell-variables "LSP_USE_PLISTS"))
 
-(use-package selectrum
-  :demand t
-  :bind (("C-M-r" . selectrum-repeat)
-         :map selectrum-minibuffer-map
-         ("C-r" . selectrum-select-from-history)
-         ("C-j" . selectrum-next-candidate)
-         ("C-k" . selectrum-previous-candidate))
-  :config
-  (selectrum-mode +1))
+(use-package vertico
+  :straight (:files (:defaults "extensions/*"))
+  :bind (:map vertico-map
+              ("C-j" . vertico-next)
+              ("C-k" . vertico-previous))
+  :init
+  (vertico-mode))
 
-(use-package selectrum-prescient
-  :after selectrum
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-;" . embark-act)         ;; pick some comfortable binding
+   ("M-." . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
   :config
-  (selectrum-prescient-mode +1)
-  (prescient-persist-mode +1))
+
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 
 (use-package consult
   :bind (("C-c C-j" . consult-imenu)
          ("C-x b" . consult-buffer)
          ("C-x C-b" . consult-buffer)))
 
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 ;; project management
 (use-package projectile
