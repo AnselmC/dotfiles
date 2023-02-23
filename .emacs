@@ -14,8 +14,7 @@
          "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
          'silent 'inhibit-cookies)
       (goto-char (point-max))
-      (eval-pr
-       int-last-sexp)))
+      (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
 
@@ -166,6 +165,8 @@
 
 
 ;; fancy modeline
+(use-package all-the-icons)
+
 (use-package doom-modeline
   :init
   (setq doom-modeline-major-mode-icon t
@@ -173,7 +174,7 @@
         doom-modeline-modal-icon t
         doom-modeline-persp-name t
         doom-modeline-persp-icon t
-        doom-modeline-minor-modes t
+        doom-modeline-minor-modes nil
         doom-modeline--battery-status t)
   :config (doom-modeline-mode 1))
 
@@ -242,6 +243,10 @@
 
 
 ;; UX CONFIG
+(use-package nyan-mode
+  :config
+  (nyan-mode)
+  (nyan-start-animation))
 
 ;; always open frames in same window
 (setq ns-pop-up-frames nil)
@@ -258,6 +263,8 @@
 
 ;; do not echo commands in conint
 (setq comint-process-echoes t)
+
+
 
 
 (use-package origami
@@ -329,7 +336,10 @@
         (run-python (concat manage-py-file " shell"))
       (message (concat "manage.py doesn't exist in " root-dir)))))
 
-(use-package pyvenv)
+(use-package pyvenv
+  :init
+  (pyvenv-tracking-mode))
+
 ;; LSP
 (use-package lsp-mode
   :diminish (eldoc-mode lsp-lens-mode)
@@ -337,9 +347,11 @@
   :custom
   (lsp-completion-provider :none)
   (lsp-use-plists t)
+  (lsp-keep-workspace-alive nil)
   (lsp-pylsp-plugins-pycodestyle-enabled nil)
   (lsp-pylsp-plugins-pydocstyle-enabled nil)
   (lsp-pylsp-plugins-pylint-enabled t)
+  (lsp-pylsp-plugins-black-enabled t)
   (lsp-pylsp-plugins-flake8-enabled nil)
   :init
   (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
@@ -368,11 +380,9 @@
   (dap-mode 1)
   (dap-ui-mode 1))
 
-(use-package dap-python
-  :after dap-mode)
 
 (defun dap-python--pyenv-executable-find (command)
-    (executable-find command))
+  (executable-find command))
 
 (setq lsp-completion-provider :none)
 
@@ -473,8 +483,9 @@
   :bind ("C-x g" . magit-status))
 
 (use-package forge
-  :after magit)
-
+  :disabled t
+  :after magit
+  :init (add-to-list 'forge-alist '("gitlab.scandit.com" "gitlab.scandit.com/api/v4" "gitlab.scandit.com" forge-gitlab-repository)))
 
 
 ;; code error checking
@@ -601,6 +612,7 @@
          (end (save-excursion (re-search-forward ",")))
          (link (buffer-substring-no-properties  (+ start 1) (- end 1))))
     (browse-url link)))
+
 (use-package csv-mode
   :bind (("C-c C-o" . csv-open-link-at-point))
   )
