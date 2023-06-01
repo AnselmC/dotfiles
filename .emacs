@@ -333,7 +333,7 @@
   (let* ((root-dir (vc-root-dir))
          (manage-py-file (concat root-dir "manage.py")))
     (if (file-exists-p manage-py-file)
-        (run-python (concat manage-py-file " shell"))
+        (run-python (concat manage-py-file " shell") t)
       (message (concat "manage.py doesn't exist in " root-dir)))))
 
 (use-package pyvenv
@@ -353,6 +353,7 @@
   (lsp-pylsp-plugins-pylint-enabled t)
   (lsp-pylsp-plugins-black-enabled t)
   (lsp-pylsp-plugins-flake8-enabled nil)
+  (lsp-pylsp-plugins-rope-completion-enabled t)
   :init
   (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
   (defun my/lsp-mode-setup-completion ()
@@ -363,13 +364,23 @@
   (add-to-list 'lsp-enabled-clients 'clojure-lsp)
   (add-to-list 'lsp-enabled-clients 'clangd)
   (add-to-list 'lsp-enabled-clients 'pylsp)
+  (add-to-list 'lsp-enabled-clients 'sourcekit-ls)
   :hook ((clojure-mode . lsp)
          (python-mode . lsp)
          (java-mode . lsp)
          (web-mode . lsp)
+         (swift-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration)
          (lsp-completion-mode . my/lsp-mode-setup-completion))
   :commands lsp)
+
+(use-package swift-mode
+  :hook (swift-mode . (lambda () (lsp))))
+
+(use-package lsp-sourcekit
+  :after lsp-mode
+  :config
+  (setq lsp-sourcekit-executable (string-trim (shell-command-to-string "xcrun --find sourcekit-lsp"))))
 
 (use-package dap-mode
   :config
@@ -772,12 +783,14 @@
 (use-package org-bullets
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
 (use-package org-ref
   :config
-  (setq org-ref-bibliography-notes "~/Documents/private/uni/notes.org"
-        org-ref-default-bibliography '("~/Documents/private/uni/bib/bamot.bib")
-        org-ref-pdf-directory "~/Zotero/storage")
-  )
+  (setq bibtex-completion-notes-path "~/data/org-ref-notes/"
+     	bibtex-completion-additional-search-fields '(keywords)
+        bibtex-completion-bibliography '("~/Documents/My Library.bib")
+        bibtex-completion-library-path "~/data/papers"))
+
 
 (use-package evil-org
   :after org
