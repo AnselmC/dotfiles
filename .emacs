@@ -370,6 +370,12 @@
 ;; ability to use multiple terminal sessions
 (use-package multi-term)
 
+
+;; kubernetes
+(use-package kubernetes)
+(use-package kubernetes-evil)
+
+
 ;; code completion
 
 (use-package orderless
