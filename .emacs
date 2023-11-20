@@ -682,19 +682,6 @@
 
 (setq org-latex-prefer-user-labels t)
 
-(use-package org-roam
-  :straight t
-  :init
-  (setq org-roam-v2-ack t)
-  :custom
-  (org-roam-directory "~/roam_notes")
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         :map org-mode-map
-         ("C-M-i"    . completion-at-point))
-  :config
-  (org-roam-setup))
 
 ;; fuzzy search on bib
 ;;(use-package helm-bibtex
