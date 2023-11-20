@@ -91,8 +91,7 @@
   :init
   (add-to-list 'exec-path "/usr/local/bin")
   :config
-  (exec-path-from-shell-initialize)
-  (add-to-list 'exec-path-from-shell-variables "LSP_USE_PLISTS"))
+  (exec-path-from-shell-initialize))
 
 (use-package vertico
   :straight (:files (:defaults "extensions/*"))
@@ -340,49 +339,9 @@
   :init
   (pyvenv-tracking-mode))
 
-;; LSP
-(use-package lsp-mode
-  :diminish (eldoc-mode lsp-lens-mode)
-  :demand t
-  :custom
-  (lsp-completion-provider :none)
-  (lsp-use-plists t)
-  (lsp-keep-workspace-alive nil)
-  (lsp-pylsp-plugins-pycodestyle-enabled nil)
-  (lsp-pylsp-plugins-pydocstyle-enabled nil)
-  (lsp-pylsp-plugins-pylint-enabled t)
-  (lsp-pylsp-plugins-black-enabled t)
-  (lsp-pylsp-plugins-flake8-enabled nil)
-  (lsp-pylsp-plugins-rope-completion-enabled t)
-  :init
-  (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
-  (defun my/lsp-mode-setup-completion ()
-    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-          '(orderless))) ;; Configure orderless
-  :config
-  (add-to-list 'lsp-enabled-clients 'ts-ls)
-  (add-to-list 'lsp-enabled-clients 'clojure-lsp)
-  (add-to-list 'lsp-enabled-clients 'clangd)
-  (add-to-list 'lsp-enabled-clients 'pylsp)
-  (add-to-list 'lsp-enabled-clients 'sourcekit-ls)
-  :hook ((clojure-mode . lsp)
-         (python-mode . lsp)
-         (java-mode . lsp)
-         (web-mode . lsp)
-         (swift-mode . lsp)
-         (lsp-mode . lsp-enable-which-key-integration)
-         (lsp-completion-mode . my/lsp-mode-setup-completion))
-  :commands lsp)
-
-(use-package swift-mode
-  :hook (swift-mode . (lambda () (lsp))))
-
-(use-package lsp-sourcekit
-  :after lsp-mode
-  :config
-  (setq lsp-sourcekit-executable (string-trim (shell-command-to-string "xcrun --find sourcekit-lsp"))))
 
 (use-package dap-mode
+  :disabled t
   :config
   (require 'dap-python)
   :custom
@@ -395,40 +354,6 @@
 (defun dap-python--pyenv-executable-find (command)
   (executable-find command))
 
-(setq lsp-completion-provider :none)
-
-(use-package consult-lsp)
-
-(use-package lsp-treemacs
-  :config
-  (lsp-treemacs-sync-mode 1))
-
-(use-package lsp-py
-  :custom
-  (lsp-py-flake8-enabled nil)
-  (lsp-py-pyflakes-enabled nil)
-  (lsp-py-pydocstyle-enabled nil)
-  (lsp-py-pycodestyle-enabled nil)
-  (lsp-py-pylint-enabled t)
-  (lsp-py-jedi-completion-enabled t)
-  (lsp-py-jedi-definition-enabled t)
-  (lsp-py-jedi-hover-enabled t)
-  (lsp-py-jedi-references-enabled t)
-  :straight (lsp-py :type git :host nil :repo "https://github.com/AnselmC/lsp-py.git"))
-
-(use-package lsp-ui
-  :demand t
-  :after lsp-mode
-  :init
-  (setq lsp-ui-doc-enable t
-        lsp-ui-doc-delay 2.0
-        lsp-ui-doc-position 'at-point
-        lsp-ui-peek-enable t)
-
-  :bind (:map lsp-ui-peek-mode-map
-              ("C-j" . lsp-ui-peek--select-next)
-              ("C-k" . lsp-ui-peek--select-prev))
-  :commands lsp-ui-mode)
 
 (use-package which-key
   :diminish which-key-mode
@@ -498,11 +423,33 @@
   :after magit
   :init (add-to-list 'forge-alist '("gitlab.scandit.com" "gitlab.scandit.com/api/v4" "gitlab.scandit.com" forge-gitlab-repository)))
 
+(with-eval-after-load 'eglot
+(define-key eglot-mode-map (kbd "C-c r") 'eglot-rename)
+(define-key eglot-mode-map (kbd "C-c o") 'eglot-code-action-organize-imports)
+(define-key eglot-mode-map (kbd "C-c h") 'eldoc)
+(define-key eglot-mode-map (kbd "C-c d") 'xref-find-definitions)
+(define-key eglot-mode-map (kbd "C-c x") 'xref-find-references)
+(define-key eglot-mode-map (kbd "C-c i") 'eglot-find-implementation)
+(define-key eglot-mode-map (kbd "C-c c") 'eglot-find-declaration)
+(define-key eglot-mode-map (kbd "C-c a") 'eglot-code-actions)
+(define-key eglot-mode-map (kbd "C-c =") 'eglot-format)
+(define-key eglot-mode-map (kbd "C-c M-r") 'eglot-reconnect)
+(define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu))
+(add-hook 'python-mode-hook 'eglot-ensure)
+(defun stop-spamming-pls-2 (orig-fun &rest args)
+    "Stop eglot from spamming the echo area"
+    (if (not (string-equal (nth 1 args) "$/progress"))
+        (apply orig-fun args)
+      )
+    )
+  (advice-add 'eglot-handle-notification :around #'stop-spamming-pls-2)
+
 
 ;; code error checking
-(flymake-mode-off)
-(diminish 'flymake-mode)
+;; (flymake-mode-off)
+;; (diminish 'flymake-mode)
 (use-package flycheck
+  :disabled t
   :init (global-flycheck-mode))
 
 ;; yasnippet
@@ -521,6 +468,7 @@
   :config
   (global-tree-sitter-mode)
   (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode))
+
 (use-package tree-sitter-langs
   :after tree-sitter)
 
@@ -636,160 +584,84 @@
 	     ))
 
 
-;; SQL
-;;(use-package sqlformat
-;;  :config
-;;  (progn
-;;    (add-hook 'sql-mode-hook 'sqlformat-on-save-mode)))
 
 
 ;; PRODUCTIVITY
 
 ;; org-mode
-;;(let* ((variable-tuple
-;;        (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-;;              ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-;;              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-;;              ((x-list-fonts "Verdana")         '(:font "Verdana"))
-;;              ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-;;              (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-;;       (base-font-color     (face-foreground 'default nil 'default))
-;;       (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
-;;
-;;  (let* ((variable-tuple
-;;          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-;;                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-;;                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-;;                ((x-list-fonts "Verdana")         '(:font "Verdana"))
-;;                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-;;                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-;;         (base-font-color     (face-foreground 'default nil 'default))
-;;         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
-;;
-;;    (custom-theme-set-faces
-;;     'user
-;;     `(org-level-8 ((t (,@headline ,@variable-tuple))))
-;;     `(org-level-7 ((t (,@headline ,@variable-tuple))))
-;;     `(org-level-6 ((t (,@headline ,@variable-tuple))))
-;;     `(org-level-5 ((t (,@headline ,@variable-tuple))))
-;;     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-;;     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-;;     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-;;     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-;;     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
-;;
-;;  (custom-theme-set-faces
-;;   'user
-;;   `(org-level-8 ((t (,@headline ,@variable-tuple))))
-;;   `(org-level-7 ((t (,@headline ,@variable-tuple))))
-;;   `(org-level-6 ((t (,@headline ,@variable-tuple))))
-;;   `(org-level-5 ((t (,@headline ,@variable-tuple))))
-;;   `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.0))))
-;;   `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.05))))
-;;   `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.1))))
-;;   `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.25))))
-;;   `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
-;;(custom-theme-set-faces
-;; 'user
-;; '(variable-pitch ((t (:family "ETBembo" :height 120 :weight thin))))
-;; '(fixed-pitch ((t ( :family "Fira Code Retina" :height 120)))))
-;;(add-hook 'org-mode-hook 'variable-pitch-mode)
-;;(add-hook 'org-mode-hook 'visual-line-mode)
-;;(custom-theme-set-faces
-;; 'user
-;; '(org-block ((t (:inherit fixed-pitch))))
-;; '(org-code ((t (:inherit (shadow fixed-pitch)))))
-;; '(org-document-info ((t (:foreground "dark orange"))))
-;; '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-;; '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-;; '(org-link ((t (:foreground "royal blue" :underline t))))
-;; '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-;; '(org-property-value ((t (:inherit fixed-pitch))) t)
-;; '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-;; '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
-;; '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-;; '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-(use-package org
-  :bind (("C-c l" . org-store-link)
-         ("C-c C-l" . org-insert-link))
+(let* ((variable-tuple
+        (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+              ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+              ((x-list-fonts "Verdana")         '(:font "Verdana"))
+              ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+              (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+       (base-font-color     (face-foreground 'default nil 'default))
+       (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
-  :custom
-  (org-hide-emphasis-markers t)
-  :config
-  (font-lock-add-keywords 'org-mode
-                          '(("^ *\\([-]\\) "
-                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((python . t)
-     (C . t)))
-  ;; Use minted
-  (add-to-list 'org-latex-packages-alist '("" "minted"))
+  (let* ((variable-tuple
+          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+         (base-font-color     (face-foreground 'default nil 'default))
+         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
-  (require 'ox-latex)
-  (add-to-list 'org-latex-classes
-               '("koma-book"
-                 "\\documentclass{scrbook}"
-                 ("\\chapter{%s}" . "\\chapter*{%s}")
-                 ("\\section{%s}" . "\\section*{%s}")
-                 ("\\subsection{%s}" . "\\subsection*{%s}")
-                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+    (custom-theme-set-faces
+     'user
+     `(org-level-8 ((t (,@headline ,@variable-tuple))))
+     `(org-level-7 ((t (,@headline ,@variable-tuple))))
+     `(org-level-6 ((t (,@headline ,@variable-tuple))))
+     `(org-level-5 ((t (,@headline ,@variable-tuple))))
+     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
+     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
+     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
+     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
+     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
 
-  ;; #+LaTeX_CLASS: beamer in org files
-  (unless (boundp 'org-export-latex-classes)
-    (setq org-export-latex-classes nil))
-  (add-to-list 'org-latex-classes
-               '("beamer"
-                 "\\documentclass\[presentation\]\{beamer\}"
-                 ("\\section\{%s\}" . "\\section*\{%s\}")
-                 ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
-                 ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}")))
-
-  (setq org-latex-listings 'minted
-        org-log-done t
-        org-latex-prefer-user-labels t
-        ;; fontify title etc.
-        org-src-fontify-natively t
-        ;; remove colored hyperlinks
-        org-latex-with-hyperref nil
-        ;; Add the shell-escape flag
-        org-latex-pdf-process '(
-                                "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                "bibtex %b"
-                                "makeglossaries %b"
-                                "makeindex %b"
-                                "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                )
-        ;; table caption below table
-        org-latex-caption-above nil
-        ;; Sample minted options.
-        org-latex-minted-options '(
-                                   ("frame" "lines")
-                                   ("fontsize" "\\scriptsize")
-                                   ("xleftmargin" "\\parindent")
-                                   ("linenos" "")
-                                   )
-
-        org-latex-table-scientific-notation nil
-        ;; enable latex highlighting in org-mode
-        org-highlight-latex-and-related '(latex script entities)
-        ;; set python3
-        org-babel-python-command "python3"
-        )
-  )
+  (custom-theme-set-faces
+   'user
+   `(org-level-8 ((t (,@headline ,@variable-tuple))))
+   `(org-level-7 ((t (,@headline ,@variable-tuple))))
+   `(org-level-6 ((t (,@headline ,@variable-tuple))))
+   `(org-level-5 ((t (,@headline ,@variable-tuple))))
+   `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.0))))
+   `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.05))))
+   `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.1))))
+   `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.25))))
+   `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+(custom-theme-set-faces
+ 'user
+ '(variable-pitch ((t (:family "ETBembo" :height 140 :weight thin))))
+ '(fixed-pitch ((t ( :family "Fira Code Retina" :height 160)))))
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+(custom-theme-set-faces
+ 'user
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "dark orange"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-link ((t (:foreground "royal blue" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 (use-package org-bullets
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
-(use-package org-ref
-  :config
-  (setq bibtex-completion-notes-path "~/data/org-ref-notes/"
-     	bibtex-completion-additional-search-fields '(keywords)
-        bibtex-completion-bibliography '("~/Documents/My Library.bib")
-        bibtex-completion-library-path "~/data/papers"))
+;;(use-package org-ref
+;;  :config
+;;  (setq bibtex-completion-notes-path "~/data/org-ref-notes/"
+;;     	bibtex-completion-additional-search-fields '(keywords)
+;;        bibtex-completion-bibliography '("~/Documents/My Library.bib")
+;;        bibtex-completion-library-path "~/data/papers"))
 
 
 (use-package evil-org
