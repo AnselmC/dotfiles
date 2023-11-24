@@ -516,26 +516,6 @@
   (python-shell-send-string "%load_ext autoreload")
   (python-shell-send-string "%autoreload 0"))
 
-;; conda
-(use-package conda
-  :init
-  (setq conda-anaconda-home (expand-file-name "~/miniconda3"))
-  :config
-  (conda-env-initialize-interactive-shells))
-
-;; import sorting
-(use-package py-isort
-  :config
-  (add-hook 'before-save-hook 'py-isort-before-save))
-
-(use-package sphinx-doc
-  :init
-  (setq sphinx-doc-include-types nil) ;; set to t to include type annotations
-  :hook ((python-mode-hook . sphinx-doc-mode)))
-
-;; EIN (Emacs IPython Notebook)
-(use-package ein)
-
 
 
 ;; c++
