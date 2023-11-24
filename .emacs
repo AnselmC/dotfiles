@@ -450,6 +450,12 @@
     )
   (advice-add 'eglot-handle-notification :around #'stop-spamming-pls-2)
 
+(setq-default eglot-workspace-configuration
+ '((pylsp                                  
+    (plugins                               
+     (ruff (enabled . t))
+     (mypy (enabled . t))))))
+
 
 ;; code error checking
 ;; (flymake-mode-off)
