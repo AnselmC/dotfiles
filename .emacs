@@ -438,6 +438,60 @@
   :after magit
   :init (add-to-list 'forge-alist '("gitlab.scandit.com" "gitlab.scandit.com/api/v4" "gitlab.scandit.com" forge-gitlab-repository)))
 
+
+
+;; (use-package lsp-mode
+;;   :diminish (eldoc-mode lsp-lens-mode)
+;;   :demand t
+;;   :custom
+;;   (lsp-completion-provider :none)
+;;   (lsp-use-plists t)
+;;   (lsp-keep-workspace-alive nil)
+;;   (lsp-pylsp-plugins-pycodestyle-enabled nil)
+;;   (lsp-pylsp-plugins-pydocstyle-enabled nil)
+;;   (lsp-pylsp-plugins-pylint-enabled t)
+;;   (lsp-pylsp-plugins-mypy enabled t)
+;;   (lsp-pylsp-plugins-black-enabled t)
+;;   (lsp-pylsp-plugins-ruff-enabled t)
+;;   (lsp-pylsp-plugins-flake8-enabled nil)
+;;   (lsp-pylsp-plugins-rope-completion-enabled t)
+;;   (lsp-pylsp-plugins-hover-enabled f)
+;;   :init
+;;   (evil-define-key 'normal lsp-mode-map (kbd "`") lsp-command-map)
+;;   (defun my/lsp-mode-setup-completion ()
+;;     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+;;           '(orderless))) ;; Configure orderless
+;;   :config
+;;   ;;(lsp-register-client
+;;   ;; (make-lsp-client
+;;   ;;  :new-connection (lsp-stdio-connection '("gitlab-lsp" "--stdio"))
+;;   ;;  :activation-fn (lsp-activate-on "python")
+;;   ;;  :add-on? t
+;;   ;;  :server-id 'gitlab-lsp))
+;;   (add-to-list 'lsp-enabled-clients 'ts-ls)
+;;   (add-to-list 'lsp-enabled-clients 'clojure-lsp)
+;;   (add-to-list 'lsp-enabled-clients 'clangd)
+;;   (add-to-list 'lsp-enabled-clients 'pylsp)
+;;   ;;(add-to-list 'lsp-enabled-clients 'gitlab-lsp) ;; not working properly
+;;   (add-to-list 'lsp-enabled-clients 'sourcekit-ls)
+;;   :hook ((clojure-mode . lsp)
+;;          (python-mode . lsp)
+;;          (java-mode . lsp)
+;;          (web-mode . lsp)
+;;          (swift-mode . lsp)
+;;          (lsp-mode . lsp-enable-which-key-integration)
+;;          (lsp-completion-mode . my/lsp-mode-setup-completion))
+;;   :commands lsp)
+;; 
+;; 
+;; 
+;; (use-package lsp-ui
+;;   :custom
+;;   (lsp-ui-sideline-show-diagnostics t)
+;;   (lsp-ui-sideline-show-hover t)
+;;   (lsp-ui-sideline-show-code-actions t)
+;;   :commands lsp-ui-mode)
+
 (with-eval-after-load 'eglot
 (define-key eglot-mode-map (kbd "C-c r") 'eglot-rename)
 (define-key eglot-mode-map (kbd "C-c o") 'eglot-code-action-organize-imports)
@@ -449,8 +503,11 @@
 (define-key eglot-mode-map (kbd "C-c a") 'eglot-code-actions)
 (define-key eglot-mode-map (kbd "C-c =") 'eglot-format)
 (define-key eglot-mode-map (kbd "C-c M-r") 'eglot-reconnect)
-(define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu))
+(define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu)
+(add-to-list 'eglot-server-programs '(python-mode . ("pylsp"))))
+
 (add-hook 'python-mode-hook 'eglot-ensure)
+
 (defun stop-spamming-pls-2 (orig-fun &rest args)
     "Stop eglot from spamming the echo area"
     (if (not (string-equal (nth 1 args) "$/progress"))
