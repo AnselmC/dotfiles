@@ -335,6 +335,19 @@
 (use-package restclient)
 ;; PROGRAMMING GENERAL
 
+;; Define a function to load the secret key
+(defun load-secret-key-from-file (file-path)
+  "Load the secret key from the specified FILE-PATH."
+  (with-temp-buffer
+    (insert-file-contents file-path)
+    (string-trim (buffer-string))))
+
+(use-package gpt
+  :ensure t
+  :init
+  (setq gpt-openai-key "~/.secrets/OPENAIKEY")
+  :bind ("M-C-g" . gpt-dwim))
+
 ;; python
 
 (setq python-shell-interpreter "ipython"
