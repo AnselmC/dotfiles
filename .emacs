@@ -230,6 +230,9 @@
   (dimmer-configure-which-key)
   (dimmer-mode t))
 
+(use-package ansi-color
+    :hook (compilation-filter . ansi-color-compilation-filter)) 
+
 
 (use-package vterm)
 ;; ansi colors in compilation mode and shells
