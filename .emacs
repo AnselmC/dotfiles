@@ -125,7 +125,16 @@
 (use-package consult
   :bind (("C-c C-j" . consult-imenu)
          ("C-x b" . consult-buffer)
+         ("C-c s" . consult-ripgrep)
          ("C-x C-b" . consult-buffer)))
+
+(use-package wgrep
+  :ensure t
+  :config
+  (setq wgrep-auto-save-buffer t) ;; Automatically save buffer after editing
+  :bind (:map grep-mode-map
+              ("C-c C-p" . wgrep-change-to-wgrep-mode)
+              ("C-c C-c" . wgrep-finish-edit)))
 
 (use-package embark-consult
   :ensure t
