@@ -46,7 +46,7 @@
  create-lockfiles nil)           ; No .# files
 
 ;; Error handling
-(setq debug-on-error t)
+(setq debug-on-error nil)
 (setq native-comp-async-report-warnings-errors nil)
 
 ;; Basic UX improvements
@@ -137,8 +137,7 @@
   :after evil
   :diminish 'evil-collection-unimpaired-mode
   :config
-  (evil-collection-init)
-  (evil-collection-mu4e-setup))
+  (evil-collection-init))
 
 (use-package evil-goggles
   :config
@@ -159,7 +158,7 @@
 
 ;; File navigation
 (use-package treemacs
-  :demand t
+  :defer t
   :config
   (progn
     (treemacs-set-width 50)
@@ -216,7 +215,7 @@
 (add-hook 'find-file-hook 'display-line-numbers-equalize)
 
 ;; Modeline configuration
-(use-package all-the-icons)               ; Required for doom-modeline
+(use-package nerd-icons) ;; for doom modeline
 
 (use-package doom-modeline
   :init
@@ -602,26 +601,95 @@
 ;; Email (mu4e)
 ;; =================
 ;; Current version through brew (1.12) does not work with evil-collection
-;; (use-package mu4e
-;;   :config
-;;   ;; Basic mu4e setting
-;;   (setq mu4e-maildir "~/Mail"
-;;         mu4e-get-mail-command "mbsync icloud"
-;;         mu4e-update-interval 300
-;;         mu4e-compose-signature-auto-include nil
-;;         mu4e-view-show-images t
-;;         mu4e-view-show-addresses t)
-;;
-;;   ;; SMTP configuration
-;;   (setq message-send-mail-function 'smtpmail-send-it
-;;         smtpmail-stream-type 'ssl
-;;         smtpmail-default-smtp-server "smtp.mail.me.com"
-;;         smtpmail-smtp-server "smtp.mail.me.com"
-;;         smtpmail-smtp-service 587)
-;;
-;;   ;; Personal information
-;;   (setq user-mail-address "anselm.coogan@icloud.com"
-;;         user-full-name "Anselm Coogan"))
+;; requires installing some deps:
+;; brew install msmtp glib prce2 xapian pkg-config gmime meson isync
+(setenv "PKG_CONFIG_PATH" "usr/local/lib/pkgconfig")
+(use-package mu4e
+  :straight (mu4e :type git
+                  :host github
+                  :files ("mu4e/*.el" "build/mu4e/*.el" "build/mu4e/*.elc")
+                  :branch "release/1.10"
+                  :repo "djcb/mu"
+                  :pre-build (("./autogen.sh")
+                              ("make")))
+  :config
+  (require 'mu4e-contrib)
+  ;; Basic mu4e setting
+  (setq mu4e-get-mail-command "mbsync -a"
+        mu4e-update-interval 300
+        mu4e-compose-signature-auto-include nil
+        message-kill-buffer-on-exit t
+        mu4e-context-policy 'pick-first
+        mu4e-compose-context-policy 'ask)
+
+  ;; UI
+  (setq mu4e-use-fancy-chars t)
+
+  ;; SMTP configuration
+  (setq send-mail-function 'message-send-mail-with-sendmail
+        message-send-mail-function 'message-send-mail-with-sendmail
+        sendmail-program (executable-find "msmtp"))
+
+  ;; Contexts
+  (setq mu4e-contexts
+        `(,(make-mu4e-context
+            :name "icloud"
+            :match-func
+            (lambda (msg)
+              (when msg
+                (mu4e-message-contact-field-matches msg
+                                                    :to "anselm.coogan@icloud.com")))
+            :vars '((user-mail-address . "anselm.coogan@icloud.com" )
+                    (user-full-name . "Anselm Coogan")
+                    (mu4e-drafts-folder . "/icloud/Drafts")
+                    (mu4e-refile-folder . "/icloud/Archive")
+                    (mu4e-sent-folder . "/icloud/Sent Messages")
+                    (mu4e-trash-folder . "/icloud/Deleted Messages")))
+
+          ,(make-mu4e-context
+            :name "gmail"
+            :match-func
+            (lambda (msg)
+              (when msg
+                (mu4e-message-contact-field-matches msg
+                                                    :to "anselm.coogan@gmail.com")))
+            :vars '((user-mail-address . "anselm.coogan@gmail.com")
+                    (user-full-name . "Anselm Coogan")
+                    (mu4e-drafts-folder . "/gmail/Drafts")
+                    (mu4e-refile-folder . "/gmail/Archive")
+                    (mu4e-sent-folder . "/gmail/Sent")
+                    (mu4e-trash-folder . "/gmail/Trash")))))
+  (evil-collection-mu4e-setup))
+
+;; Use different faces for different columns
+(use-package mu4e-column-faces
+  :after mu4e
+  :config (mu4e-column-faces-mode))
+
+;; Foldable threads
+(use-package mu4e-thread-folding
+  :after mu4e
+  :straight (mu4e-thread-folding
+             :type git
+             :host github
+             :repo "rougier/mu4e-thread-folding")
+  :config
+  (add-to-list 'mu4e-header-info-custom
+               '(:empty . (:name "Empty"
+                                 :shortname ""
+                                 :function (lambda (msg) "  "))))
+  (setq mu4e-headers-fields '((:empty         .    4)
+                              (:human-date    .    12)
+                              (:flags         .    6)
+                              ;;(:mailing-list  .   10)
+                              (:from          .   22)
+                              (:subject       .   nil)))
+  :bind (:map mu4e-headers-mode-map
+              ("<tab>" . mu4e-headers-toggle-at-point))
+  :init (mu4e-thread-folding-mode +1))
+
+
+
 
 ;; =================
 ;; Text Editing
@@ -665,8 +733,8 @@
 
 (use-package le-thesaurus
   :straight (le-thesaurus :type git
-                          :host nil
-                          :repo "https://github.com/AnselmC/le-thesaurus.el.git"))
+                          :host gitub
+                          :repo "AnselmC/le-thesaurus.el"))
 
 ;; =================
 ;; Document Viewing
@@ -677,7 +745,10 @@
 ;; =================
 ;; Terminal
 ;; =================
-(use-package vterm)
+(use-package vterm
+  ;; avoid compiling vterm at startup
+  :defer t)
+
 
 ;; Do not echo commands in comint
 (setq comint-process-echoes t)
@@ -732,18 +803,8 @@
 ;; THINGS TO CHECKOUT
 ;; ====================================
 ;; (use-package meow) ;; Replacement for evil
-;; Replacement for vterm
-(use-package
-  '(eat :type git
-        :host codeberg
-        :repo "akib/emacs-eat"
-        :files ("*.el" ("term" "term/*.el") "*.texi"
-                "*.ti" ("terminfo/e" "terminfo/e/*")
-                ("terminfo/65" "terminfo/65/*")
-                ("integration" "integration/*")
-                (:exclude ".dir-locals.el" "*-tests.el"))))
 (use-package popper
-  :bind (("C-`"   . popper-tSymbol’s function definition is void: mu4e--main-action-stroggle)
+  :bind (("C-`"   . popper-t)
          ("M-`"   . popper-cycle)
          ("C-M-`" . popper-toggle-type))
   :init
