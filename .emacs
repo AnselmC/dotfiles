@@ -1,4 +1,4 @@
-;;; .emacs --- Anselm's emacs config
+;; .emacs --- Anselm's emacs config
 ;; Commentary: My modern emacs config using evil, straight, gpt.
 
 ;;; Code:
@@ -579,6 +579,25 @@
 ;; =================
 ;; Org Mode
 ;; =================
+;; Enable variable pitch fonts in Org mode
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+
+;; Hide emphasis markers (bold, italic, etc.)
+(setq org-hide-emphasis-markers t)
+
+;; Set default font faces
+(custom-theme-set-faces
+'user
+'(org-level-1 ((t (:inherit outline-1 :height 1.4))))
+'(org-level-2 ((t (:inherit outline-2 :height 1.3))))
+'(org-level-3 ((t (:inherit outline-3 :height 1.2))))
+'(org-level-4 ((t (:inherit outline-4 :height 1.1))))
+'(org-document-title ((t (:height 1.5 :weight bold)))))
+
+;; Set pretty entities (e.g., \alpha → α)
+(setq org-pretty-entities t)
+
+;; UTF8 bullets instead of *
 (use-package org-bullets
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
@@ -735,6 +754,12 @@
   :straight (le-thesaurus :type git
                           :host gitub
                           :repo "AnselmC/le-thesaurus.el"))
+
+;; center page for nicer writing experience
+(use-package olivetti
+  :hook (org-mode . olivetti-mode)
+  :config
+  (setq olivetti-body-width 80))
 
 ;; =================
 ;; Document Viewing
