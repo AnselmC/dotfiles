@@ -25,6 +25,12 @@
 ;; CORE SETTINGS & PERFORMANCE
 ;; ====================================
 
+;; Start screen
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook))
+
 ;; Garbage collection settings
 (setq gc-cons-threshold (* 50 1000 1000)) ; 50MB
 (setq read-process-output-max (* 1024 1024)) ; 1MB
@@ -171,12 +177,20 @@
        (treemacs-git-mode 'deferred))
       (`(t . _)
        (treemacs-git-mode 'simple)))
-    (treemacs)))
+    ))
 
 
 (use-package treemacs-evil
   :after (treemacs evil)
   :config (evil-treemacs-state t))
+
+(use-package treemacs-nerd-icons
+  :config
+  (treemacs-load-theme "nerd-icons"))
+
+(use-package nerd-icons-dired
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
 
 
 ;; Show breadcrumbs
@@ -304,6 +318,11 @@
   :init
   (marginalia-mode))
 
+;; Add icons to annotations
+(use-package nerd-icons-completion
+  :config
+  (nerd-icons-completion-mode))
+
 ;; Shell colors
 (add-hook 'shell-mode-hook
           (lambda ()
@@ -369,6 +388,7 @@
   (define-key eglot-mode-map (kbd "C-c M-r") 'eglot-reconnect)
   (define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu))
 (add-hook 'python-mode-hook 'eglot-ensure)
+(add-hook 'clojure-mode-hook 'eglot-ensure)
 
 
 (setq-default eglot-workspace-configuration
@@ -587,12 +607,12 @@
 
 ;; Set default font faces
 (custom-theme-set-faces
-'user
-'(org-level-1 ((t (:inherit outline-1 :height 1.4))))
-'(org-level-2 ((t (:inherit outline-2 :height 1.3))))
-'(org-level-3 ((t (:inherit outline-3 :height 1.2))))
-'(org-level-4 ((t (:inherit outline-4 :height 1.1))))
-'(org-document-title ((t (:height 1.5 :weight bold)))))
+ 'user
+ '(org-level-1 ((t (:inherit outline-1 :height 1.4))))
+ '(org-level-2 ((t (:inherit outline-2 :height 1.3))))
+ '(org-level-3 ((t (:inherit outline-3 :height 1.2))))
+ '(org-level-4 ((t (:inherit outline-4 :height 1.1))))
+ '(org-document-title ((t (:height 1.5 :weight bold)))))
 
 ;; Set pretty entities (e.g., \alpha → α)
 (setq org-pretty-entities t)
@@ -624,6 +644,7 @@
 ;; brew install msmtp glib prce2 xapian pkg-config gmime meson isync
 (setenv "PKG_CONFIG_PATH" "usr/local/lib/pkgconfig")
 (use-package mu4e
+  :defer 20
   :straight (mu4e :type git
                   :host github
                   :files ("mu4e/*.el" "build/mu4e/*.el" "build/mu4e/*.elc")
