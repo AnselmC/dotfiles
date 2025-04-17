@@ -20,6 +20,7 @@
 
 (setq straight-use-package-by-default t)
 (straight-use-package 'use-package)
+(straight-use-package 'org)
 
 ;; ====================================
 ;; CORE SETTINGS & PERFORMANCE
@@ -228,8 +229,16 @@
         (length (number-to-string (line-number-at-pos (point-max))))))
 (add-hook 'find-file-hook 'display-line-numbers-equalize)
 
+;; indent guide
+;; add highlight-indent-guides, activate for most programming languages, and set to character
+(use-package highlight-indent-guides
+  :disable t ;; doesn't work well with theme
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'character))
+
 ;; Modeline configuration
-(use-package nerd-icons) ;; for doom modeline
+(use-package nerd-icons)
 
 (use-package doom-modeline
   :init
@@ -306,12 +315,6 @@
   (setq visible-bell 1)
   :config
   (mode-line-bell-mode 1))
-
-;; Fun stuff
-(use-package nyan-mode
-  :config
-  (nyan-mode)
-  (nyan-start-animation))
 
 ;; Better annotations in minibuffer
 (use-package marginalia
@@ -480,14 +483,29 @@
     (insert-file-contents file-path)
     (string-trim (buffer-string))))
 
-(use-package gpt
-  :init
-  (setq gpt-openai-key (load-secret-key-from-file "~/.secrets/OPENAIKEY"))
-  (setq gpt-anthropic-key (load-secret-key-from-file "~/.secrets/ANTHROPICKEY"))
-  (setq gpt-api-type 'anthropic)
-  (setq gpt-model "claude-3-5-sonnet-latest")
-  :bind (("M-C-g" . gpt-dwim)
-         ("M-C-n" . gpt-complete-at-point)))
+(use-package le-gpt
+  :after evil
+  :bind (("M-C-g" . le-gpt-chat)
+         ("M-C-n" . le-gpt-complete-at-point)
+         ("M-C-t" . le-gpt-transform-region)
+         ("M-C-s" . le-gpt-select-project-files)
+         ("M-C-d" . le-gpt-deselect-project-files))
+  :config
+  ;; you need to set at least one of the following
+  (setq le-gpt-api-type 'anthropic)
+  
+  (setq le-gpt-openai-key (load-secret-key-from-file "~/.secrets/OPENAIKEY"))
+  (setq le-gpt-anthropic-key (load-secret-key-from-file "~/.secrets/ANTHROPICKEY"))
+  (setq le-gpt-deepseek-key (load-secret-key-from-file "~/.secrets/DEEPSEEKKEY"))
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal le-gpt-buffer-list-mode-map
+      (kbd "RET") #'le-gpt-buffer-list-open-buffer
+      (kbd "d") #'le-gpt-buffer-list-mark-delete
+      (kbd "u") #'le-gpt-buffer-list-unmark
+      (kbd "x") #'le-gpt-buffer-list-execute
+      (kbd "gr") #'le-gpt-buffer-list-refresh
+      (kbd "q") #'quit-window))
+  )
 
 
 
@@ -535,7 +553,14 @@
 (use-package cider
   :init
   (setq cider-auto-jump-to-error nil))
-(use-package paredit)
+
+(use-package paredit
+  :disabled t
+  :init
+  (remove-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
+  (add-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'cider-repl-mode-hook 'paredit-mode))
 
 ;; C/C++
 (add-hook 'c-mode-common-hook #'clang-format+-mode)
@@ -599,8 +624,30 @@
 ;; =================
 ;; Org Mode
 ;; =================
+
+(use-package ekg
+  :config
+  (require 'ekg-auto-save)
+  (add-hook 'ekg-capture-mode-hook #'ekg-auto-save-mode)
+  (add-hook 'ekg-edit-mode-hook #'ekg-auto-save-mode))
+
+  (evil-define-key 'normal ekg-notes-mode-map
+    "A" 'ekg-notes-any-tags
+    "B" 'ekg-notes-select-and-browse-url
+    "a" 'ekg-notes-any-note-tags
+    "b" 'ekg-notes-browse
+    "c" 'ekg-notes-create
+    "d" 'ekg-notes-delete
+    "g" 'ekg-notes-refresh
+    "k" 'ekg-notes-kill
+    "n" 'ekg-notes-next ;; or "j"
+    "o" 'ekg-notes-open
+    "p" 'ekg-notes-previous ;; or "k"
+    "q" 'kill-buffer-and-window
+    "t" 'ekg-notes-tag)
+
 ;; Enable variable pitch fonts in Org mode
-(add-hook 'org-mode-hook 'variable-pitch-mode)
+(setq org-agenda-files '("~/org/"))
 
 ;; Hide emphasis markers (bold, italic, etc.)
 (setq org-hide-emphasis-markers t)
@@ -642,13 +689,13 @@
 ;; Current version through brew (1.12) does not work with evil-collection
 ;; requires installing some deps:
 ;; brew install msmtp glib prce2 xapian pkg-config gmime meson isync
-(setenv "PKG_CONFIG_PATH" "usr/local/lib/pkgconfig")
+(setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/gmime/3.2.15/lib/pkgconfig:/usr/local/Cellar/xapian/1.4.27/lib/pkgconfig:/usr/local/Cellar/glib/2.82.5/lib/pkgconfig:/usr/local/Cellar/guile/3.0.9/lib/pkgconfig:/usr/local/Cellar/pcre2/10.44/lib/pkgconfig")
 (use-package mu4e
   :defer 20
   :straight (mu4e :type git
                   :host github
                   :files ("mu4e/*.el" "build/mu4e/*.el" "build/mu4e/*.elc")
-                  :branch "release/1.10"
+                  :branch "v1.12.9"
                   :repo "djcb/mu"
                   :pre-build (("./autogen.sh")
                               ("make")))
@@ -698,13 +745,43 @@
                     (mu4e-drafts-folder . "/gmail/Drafts")
                     (mu4e-refile-folder . "/gmail/Archive")
                     (mu4e-sent-folder . "/gmail/Sent")
-                    (mu4e-trash-folder . "/gmail/Trash")))))
+                    (mu4e-trash-folder . "/gmail/Trash")))
+          ,(make-mu4e-context
+            :name "taskr"
+            :match-func
+            (lambda (msg)
+              (when msg
+                (mu4e-message-contact-field-matches msg
+                                                    :to "anselm@taskr.ml")))
+            :vars '((user-mail-address . "anselm@taskr.ml")
+                    (user-full-name . "Anselm Coogan")
+                    (mu4e-drafts-folder . "/taskr/Drafts")
+                    (mu4e-refile-folder . "/taskr/Archive")
+                    (mu4e-sent-folder . "/taskr/Sent")
+                    (mu4e-trash-folder . "/taskr/Trash")))))
   (evil-collection-mu4e-setup))
 
 ;; Use different faces for different columns
 (use-package mu4e-column-faces
   :after mu4e
   :config (mu4e-column-faces-mode))
+
+(use-package mu4e-dashboard
+  :after mu4e
+  :straight (mu4e-dashboard
+             :type git
+             :host github
+             :repo "rougier/mu4e-dashboard"))
+
+
+;; calendar
+(setq gnus-icalendar-additional-identities '("anselm@taskr.ml" "anselm.coogan@icloud.com" "anselm.coogan@gmail.com"))
+(require 'mu4e-icalendar)
+(mu4e-icalendar-setup)
+(setq gnus-icalendar-org-capture-file "~/org/agenda.org")
+(setq gnus-icalendar-org-capture-headline '("Calendar"))
+(gnus-icalendar-org-setup)
+
 
 ;; Foldable threads
 (use-package mu4e-thread-folding
@@ -772,15 +849,11 @@
              ispell-buffer))
 
 (use-package le-thesaurus
+  :disabled t ;; not working anymore
   :straight (le-thesaurus :type git
                           :host gitub
                           :repo "AnselmC/le-thesaurus.el"))
 
-;; center page for nicer writing experience
-(use-package olivetti
-  :hook (org-mode . olivetti-mode)
-  :config
-  (setq olivetti-body-width 80))
 
 ;; =================
 ;; Document Viewing
