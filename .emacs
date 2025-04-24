@@ -336,7 +336,7 @@
   "Set the font height to HEIGHT."
   (set-face-attribute 'default nil :height height))
 
-(set-font-height 145)
+(set-font-height 125)
 
 ;; Search highlighting
 (use-package evil-anzu
@@ -392,6 +392,8 @@
   (define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu))
 (add-hook 'python-mode-hook 'eglot-ensure)
 (add-hook 'clojure-mode-hook 'eglot-ensure)
+(add-hook 'typescript-ts-mode 'eglot-ensure)
+
 
 
 (setq-default eglot-workspace-configuration
@@ -491,13 +493,11 @@
          ("M-C-s" . le-gpt-select-project-files)
          ("M-C-d" . le-gpt-deselect-project-files))
   :config
-  ;; you need to set at least one of the following
   (setq le-gpt-api-type 'anthropic)
-  
-  (setq le-gpt-openai-key (load-secret-key-from-file "~/.secrets/OPENAIKEY"))
+  (setq le-gpt-model "claude-3-7-sonnet-latest")
+  (setq le-gpt-python-path "/Users/anselm/.venvs/le-gpt/bin/python")
   (setq le-gpt-anthropic-key (load-secret-key-from-file "~/.secrets/ANTHROPICKEY"))
-  (setq le-gpt-deepseek-key (load-secret-key-from-file "~/.secrets/DEEPSEEKKEY"))
-  (with-eval-after-load 'evil
+
     (evil-define-key 'normal le-gpt-buffer-list-mode-map
       (kbd "RET") #'le-gpt-buffer-list-open-buffer
       (kbd "d") #'le-gpt-buffer-list-mark-delete
@@ -505,13 +505,17 @@
       (kbd "x") #'le-gpt-buffer-list-execute
       (kbd "gr") #'le-gpt-buffer-list-refresh
       (kbd "q") #'quit-window))
-  )
+
 
 
 
 ;; =================
 ;; Language Support
 ;; =================
+
+;; Typescript
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-tsx-mode))
 
 ;; Elisp
 (add-hook 'emacs-lisp-mode (lambda ()
@@ -540,13 +544,6 @@
   (run-python)
   (python-shell-send-string "%load_ext autoreload")
   (python-shell-send-string "%autoreload 0"))
-
-;; Web Development
-(use-package web-mode
-  :mode (("\\.html\\'" . web-mode)
-         ("\\.tsx?\\'" . web-mode)))
-
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
 
 ;; Clojure
 (use-package clojure-mode)
@@ -584,6 +581,9 @@
 ;; K8s
 (use-package kubernetes)
 (use-package kubernetes-evil)
+
+;; Terraform
+(use-package terraform-mode)
 
 ;; YAML
 (use-package yaml-mode
@@ -691,6 +691,7 @@
 ;; brew install msmtp glib prce2 xapian pkg-config gmime meson isync
 (setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/gmime/3.2.15/lib/pkgconfig:/usr/local/Cellar/xapian/1.4.27/lib/pkgconfig:/usr/local/Cellar/glib/2.82.5/lib/pkgconfig:/usr/local/Cellar/guile/3.0.9/lib/pkgconfig:/usr/local/Cellar/pcre2/10.44/lib/pkgconfig")
 (use-package mu4e
+  :disabled t
   :defer 20
   :straight (mu4e :type git
                   :host github
@@ -847,12 +848,6 @@
   :commands (ispell-word
              ispell-region
              ispell-buffer))
-
-(use-package le-thesaurus
-  :disabled t ;; not working anymore
-  :straight (le-thesaurus :type git
-                          :host gitub
-                          :repo "AnselmC/le-thesaurus.el"))
 
 
 ;; =================
