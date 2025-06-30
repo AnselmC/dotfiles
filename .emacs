@@ -232,7 +232,7 @@
 ;; indent guide
 ;; add highlight-indent-guides, activate for most programming languages, and set to character
 (use-package highlight-indent-guides
-  :disable t ;; doesn't work well with theme
+  :disabled t ;; doesn't work well with theme
   :hook (prog-mode . highlight-indent-guides-mode)
   :config
   (setq highlight-indent-guides-method 'character))
@@ -490,12 +490,15 @@
   :bind (("M-C-g" . le-gpt-chat)
          ("M-C-n" . le-gpt-complete-at-point)
          ("M-C-t" . le-gpt-transform-region)
-         ("M-C-s" . le-gpt-select-project-files)
-         ("M-C-d" . le-gpt-deselect-project-files))
+         ;; if you use consult
+         ("C-c C-s" . le-gpt-consult-buffers))
   :config
   (setq le-gpt-api-type 'anthropic)
-  (setq le-gpt-model "claude-3-7-sonnet-latest")
+  (setq le-gpt-model "claude-sonnet-4-20250514")
   (setq le-gpt-python-path "/Users/anselm/.venvs/le-gpt/bin/python")
+  (setq le-gpt-max-tokens 10000)
+
+  (setq le-gpt-openai-key (load-secret-key-from-file "~/.secrets/OPENAIKEY"))
   (setq le-gpt-anthropic-key (load-secret-key-from-file "~/.secrets/ANTHROPICKEY"))
 
     (evil-define-key 'normal le-gpt-buffer-list-mode-map
@@ -504,8 +507,9 @@
       (kbd "u") #'le-gpt-buffer-list-unmark
       (kbd "x") #'le-gpt-buffer-list-execute
       (kbd "gr") #'le-gpt-buffer-list-refresh
-      (kbd "q") #'quit-window))
-
+      (kbd "/") #'le-gpt-buffer-list-filter
+      (kbd "C-c C-s") #'le-gpt-consult-buffers
+      (kbd "q") #'quit-window)))
 
 
 
