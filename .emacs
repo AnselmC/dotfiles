@@ -33,20 +33,23 @@
   :config
   (dashboard-setup-startup-hook))
 
-;; Garbage collection settings
-(setq gc-cons-threshold (* 50 1000 1000)) ; 50MB
+;; Process output buffering (gc-cons-threshold is handled by
+;; early-init.el during startup, restored below once startup is done)
 (setq read-process-output-max (* 1024 1024)) ; 1MB
 
 (use-package pg
+  :defer t
   :straight (:host github :repo "emarsden/pg-el"))
 
 (use-package pgmacs
-  :straight (:host github :repo "emarsden/pgmacs"))
+  :straight (:host github :repo "emarsden/pgmacs")
+  :commands (pgmacs pgmacs-open-uri pgmacs-open-string))
 
 
-;; Startup Performance Monitoring
+;; Startup Performance Monitoring + GC restoration
 (add-hook 'emacs-startup-hook
           (lambda ()
+            (setq gc-cons-threshold (* 50 1000 1000)) ; 50MB after startup
             (message "*** Emacs loaded in %s with %d garbage collections."
                      (format "%.2f seconds"
                              (float-time
@@ -80,6 +83,10 @@
 ;; =================
 (use-package exec-path-from-shell
   :demand t
+  :init
+  ;; Non-interactive login shell is enough (zprofile loads nvm) and
+  ;; much faster than the default ("-l" "-i")
+  (setq exec-path-from-shell-arguments '("-l"))
   :config
   (exec-path-from-shell-initialize))
 
@@ -367,7 +374,8 @@
 ;; ====================================
 
 ;; Declaratively make HTTP requests
-(use-package restclient)
+(use-package restclient
+  :defer t)
 
 (use-package json-ts-mode
       :mode ("\\.jsonl?\\'" "\\.bubble\\'"))
@@ -558,7 +566,8 @@
 (add-hook 'tsx-ts-mode-hook (lambda () (setq-local typescript-indent-level 2)))
 
 (use-package nvm
-  :straight (:host github :repo "rejeep/nvm.el"))
+  :straight (:host github :repo "rejeep/nvm.el")
+  :commands (nvm-use nvm-use-for nvm-use-for-buffer))
 
 
 ;; Elisp
@@ -591,8 +600,10 @@
   (python-shell-send-string "%autoreload 0"))
 
 ;; Clojure
-(use-package clojure-mode)
+(use-package clojure-mode
+  :defer t)
 (use-package cider
+  :defer t
   :init
   (setq cider-auto-jump-to-error nil))
 
@@ -610,15 +621,17 @@
 
 ;; Docker
 (use-package dockerfile-mode
-  :config
-  (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
+  :mode "Dockerfile\\'")
 
 ;; K8s
-(use-package kubernetes)
-(use-package kubernetes-evil)
+(use-package kubernetes
+  :commands (kubernetes-overview))
+(use-package kubernetes-evil
+  :after kubernetes)
 
 ;; Terraform
-(use-package terraform-mode)
+(use-package terraform-mode
+  :defer t)
 
 ;; YAML
 (use-package yaml-pro
@@ -659,25 +672,27 @@
 ;; =================
 
 (use-package ekg
+  :commands (ekg-capture ekg-capture-url ekg-show-notes-for-today
+             ekg-show-notes-with-tag ekg-show-notes-with-any-tags
+             ekg-show-notes-with-all-tags)
   :config
   (require 'ekg-auto-save)
   (add-hook 'ekg-capture-mode-hook #'ekg-auto-save-mode)
-  (add-hook 'ekg-edit-mode-hook #'ekg-auto-save-mode))
-
-(evil-define-key 'normal ekg-notes-mode-map
-  "A" 'ekg-notes-any-tags
-  "B" 'ekg-notes-select-and-browse-url
-  "a" 'ekg-notes-any-note-tags
-  "b" 'ekg-notes-browse
-  "c" 'ekg-notes-create
-  "d" 'ekg-notes-delete
-  "g" 'ekg-notes-refresh
-  "k" 'ekg-notes-kill
-  "n" 'ekg-notes-next ;; or "j"
-  "o" 'ekg-notes-open
-  "p" 'ekg-notes-previous ;; or "k"
-  "q" 'kill-buffer-and-window
-  "t" 'ekg-notes-tag)
+  (add-hook 'ekg-edit-mode-hook #'ekg-auto-save-mode)
+  (evil-define-key 'normal ekg-notes-mode-map
+    "A" 'ekg-notes-any-tags
+    "B" 'ekg-notes-select-and-browse-url
+    "a" 'ekg-notes-any-note-tags
+    "b" 'ekg-notes-browse
+    "c" 'ekg-notes-create
+    "d" 'ekg-notes-delete
+    "g" 'ekg-notes-refresh
+    "k" 'ekg-notes-kill
+    "n" 'ekg-notes-next ;; or "j"
+    "o" 'ekg-notes-open
+    "p" 'ekg-notes-previous ;; or "k"
+    "q" 'kill-buffer-and-window
+    "t" 'ekg-notes-tag))
 
 ;; Enable variable pitch fonts in Org mode
 (setq org-agenda-files '("~/org/"))
