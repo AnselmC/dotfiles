@@ -68,7 +68,6 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 (global-auto-revert-mode t)      ; Auto-refresh buffers
 (savehist-mode 1)                ; Remember minibuffer history
-(setq auto-save-interval 20) ;; Auto-save after 20 events
 (setq confirm-kill-processes nil) ;; Don't wait for confirmation if there are running processes
 (setq enable-recursive-minibuffers t)
 
@@ -81,8 +80,6 @@
 ;; =================
 (use-package exec-path-from-shell
   :demand t
-  :init
-  (add-to-list 'exec-path "/usr/local/bin")
   :config
   (exec-path-from-shell-initialize))
 
@@ -225,7 +222,7 @@
 (setq-default frame-title-format "%b (%f)"); Show full path in title bar
 
 ;; Theme configuration
-(consult-theme 'modus-vivendi)            ; Set default theme
+(load-theme 'modus-vivendi t)             ; Set default theme
 
 ;; Line numbers configuration
 (global-display-line-numbers-mode t)
@@ -444,7 +441,7 @@
 
 (add-hook 'clojure-mode-hook 'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook 'eglot-ensure)
-(add-hook 'typescript-tsx-mode-hook 'eglot-ensure)
+(add-hook 'tsx-ts-mode-hook 'eglot-ensure)
 
 (use-package eglot-booster
   :straight ( eglot-booster :type git :host nil :repo "https://github.com/jdtsmith/eglot-booster")
@@ -559,19 +556,19 @@
 
 ;; Typescript
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-tsx-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 (setq js-indent-level 2)
 ;; make sure that eglot formats with two spaces for typescript
 (setq typescript-indent-level 2)
 (add-hook 'typescript-ts-mode-hook (lambda () (setq-local typescript-indent-level 2)))
-(add-hook 'typescript-tsx-mode-hook (lambda () (setq-local typescript-indent-level 2)))
+(add-hook 'tsx-ts-mode-hook (lambda () (setq-local typescript-indent-level 2)))
 
 (use-package nvm
   :straight (:host github :repo "rejeep/nvm.el"))
 
 
 ;; Elisp
-(add-hook 'emacs-lisp-mode (lambda ()
+(add-hook 'emacs-lisp-mode-hook (lambda ()
                              ;; aligns with LSP config
                              (local-set-key (kbd "C-c d") 'xref-find-definitions)))
 
@@ -614,8 +611,6 @@
   (add-hook 'cider-repl-mode-hook 'paredit-mode))
 
 ;; C/C++
-(add-hook 'c-mode-common-hook #'clang-format+-mode)
-(setq clang-format-style "google")
 (add-hook 'c-mode-common-hook
           (lambda ()
             (local-set-key (kbd "C-c m")
@@ -949,7 +944,7 @@
 ;; Session Management
 ;; =================
 ;; Reload buffers from previous session
-(desktop-save-mode nil)
+(desktop-save-mode 1)
 
 ;; =================
 ;; Custom Functions
@@ -1019,7 +1014,7 @@
   :hook ((python-base-mode yaml-mode typescript-ts-mode typescript-tsx-mode tsx-ts-mode) . indent-bars-mode)
   )
 (use-package popper
-  :bind (("C-`"   . popper-t)
+  :bind (("C-`"   . popper-toggle)
          ("M-`"   . popper-cycle)
          ("C-M-`" . popper-toggle-type))
   :init
