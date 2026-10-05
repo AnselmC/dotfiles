@@ -544,13 +544,25 @@
 ;; =================
 (use-package pimacs
   :straight (:host github :repo "ananthakumaran/pimacs.el")
-  :custom
+  :config
+  (defun my/pimacs-hl-cost (state)
+    "Session cost as dollars and cents, e.g. $1.23."
+    (let ((cost (pimacs--plist-get state :sessionStats :cost)))
+      (if (numberp cost) (format "$%.2f" cost) "")))
+  (defun my/pimacs-hl-tokens (prefix key)
+    "Token stat KEY short-formatted (K/M/B) with PREFIX glyph."
+    (lambda (state)
+      (let ((n (pimacs--plist-get state :sessionStats :tokens key)))
+        (if (numberp n) (concat prefix (pimacs--format-number-short n)) ""))))
   ;; like the pi TUI footer: cost, tokens, and cache stats next to context usage
-  (pimacs-header-line-format
-   '(:context_usage " (" :compaction_mode ") "
-     "$" :cost " \u2191" :input_tokens " \u2193" :output_tokens
-     " \u29bf" :cache_hit_percent " \u03a3" :total_tokens
-     :spacer "(" :provider ") " :model " \u2022 " :thinking_level)))
+  (setq pimacs-header-line-format
+        (list :context_usage " (" :compaction_mode ") "
+              #'my/pimacs-hl-cost
+              (my/pimacs-hl-tokens " \u2191" :input)
+              (my/pimacs-hl-tokens " \u2193" :output)
+              " \u29bf" :cache_hit_percent
+              (my/pimacs-hl-tokens " \u03a3" :total)
+              :spacer "(" :provider ") " :model " \u2022 " :thinking_level)))
 
 (defun load-secret-key-from-file (file-path)
   "Load the secret key from the specified FILE-PATH."
