@@ -1,0 +1,4 @@
+# Make direnv's stdlib `use node` resolve versions from nvm's install dir.
+# `use node` (no args) reads .nvmrc / .node-version in the project.
+NODE_VERSIONS="$HOME/.nvm/versions/node"
+NODE_VERSION_PREFIX="v"

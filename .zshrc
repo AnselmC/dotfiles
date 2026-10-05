@@ -130,3 +130,6 @@ fi
 
 export LSP_USE_PLISTS=true
 
+
+# direnv: per-project envs (.envrc); pairs with Emacs envrc package
+eval "$(direnv hook zsh)"
