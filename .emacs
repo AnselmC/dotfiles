@@ -542,7 +542,13 @@
 ;; =================
 ;; AI Assistance
 ;; =================
-(use-package pimacs :straight (:host github :repo "ananthakumaran/pimacs.el"))
+(use-package pimacs
+  :straight (:host github :repo "ananthakumaran/pimacs.el")
+  :custom
+  ;; like the pi TUI footer: show session cost ($) next to context usage
+  (pimacs-header-line-format
+   '(:context_usage " (" :compaction_mode ") " "$" :cost :spacer
+     "(" :provider ") " :model " \u2022 " :thinking_level)))
 
 (defun load-secret-key-from-file (file-path)
   "Load the secret key from the specified FILE-PATH."
