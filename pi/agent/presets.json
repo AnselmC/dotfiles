@@ -1,0 +1,37 @@
+{
+  "quick": {
+    "description": "Sonnet 5.5, low thinking — lookups, small edits, questions",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "thinkingLevel": "low"
+  },
+  "deep": {
+    "description": "Fable 5, xhigh thinking — hard bugs, design, tricky refactors",
+    "provider": "anthropic",
+    "model": "claude-fable-5",
+    "thinkingLevel": "xhigh"
+  },
+  "plan": {
+    "description": "Read-only exploration + plan (no edits, inspect-only bash)",
+    "thinkingLevel": "high",
+    "excludeTools": ["edit", "write", "ast_grep_replace"],
+    "readOnlyBash": true,
+    "instructions": [
+      "PLANNING MODE (read-only). Do not modify files, git state, or install anything; tools for that are disabled.",
+      "Research first: read the relevant code, configs, tests and recent history (git log). Judge whether current structure fits or needs a refactor first.",
+      "Then present the shortest useful plan: what to change and why, tests to add/update, docs if behavior changes, acceptance criteria. Bullets over prose; no invented phases for small changes.",
+      "Ask clarifying questions only for real ambiguity, each with a suggested answer and its tradeoff."
+    ]
+  },
+  "review": {
+    "description": "Read-only code review of current branch vs main",
+    "thinkingLevel": "high",
+    "excludeTools": ["edit", "write", "ast_grep_replace"],
+    "readOnlyBash": true,
+    "instructions": [
+      "REVIEW MODE (read-only). Review the current branch against its merge base with main (git diff $(git merge-base HEAD main)...HEAD) plus uncommitted changes, unless the user points elsewhere.",
+      "Read surrounding code, not just the diff. Look for: correctness bugs, unhandled edge cases/errors, missing or weak tests, API/contract breaks, security issues, performance traps, and needless complexity.",
+      "Report findings ordered by severity (blocker / should-fix / nit), each with file:line, the problem, and a concrete fix. Say explicitly if you found nothing significant. Do not pad with praise."
+    ]
+  }
+}

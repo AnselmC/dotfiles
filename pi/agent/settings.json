@@ -1,0 +1,19 @@
+{
+  "lastChangelogVersion": "0.80.3",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-fable-5",
+  "defaultThinkingLevel": "high",
+  "packages": [
+    "npm:pi-subagents",
+    "npm:pi-web-access",
+    "npm:pi-lens",
+    "git:https://github.com/hasit/pi-community-themes",
+    "npm:pi-mcp-adapter"
+  ],
+  "theme": "solarized-dark",
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 49152
+  },
+  "hideThinkingBlock": true
+}
