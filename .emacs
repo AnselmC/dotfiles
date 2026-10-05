@@ -240,14 +240,6 @@
         (length (number-to-string (line-number-at-pos (point-max))))))
 (add-hook 'find-file-hook 'display-line-numbers-equalize)
 
-;; indent guide
-;; add highlight-indent-guides, activate for most programming languages, and set to character
-(use-package highlight-indent-guides
-  :disabled t ;; doesn't work well with theme
-  :hook (prog-mode . highlight-indent-guides-mode)
-  :config
-  (setq highlight-indent-guides-method 'character))
-
 ;; Modeline configuration
 (use-package nerd-icons)
 
@@ -311,6 +303,8 @@
 (use-package golden-ratio
   :after evil
   :diminish 'golden-ratio-mode
+  :custom
+  (golden-ratio-exclude-modes '(treemacs-mode))
   :config
   (setq golden-ratio-extra-commands
         (append golden-ratio-extra-commands
@@ -602,14 +596,6 @@
   :init
   (setq cider-auto-jump-to-error nil))
 
-(use-package paredit
-  :disabled t
-  :init
-  (remove-hook 'clojure-mode-hook 'paredit-mode)
-  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
-  (add-hook 'clojure-mode-hook 'paredit-mode)
-  (add-hook 'cider-repl-mode-hook 'paredit-mode))
-
 ;; C/C++
 (add-hook 'c-mode-common-hook
           (lambda ()
@@ -736,135 +722,6 @@
  '((python . t)
    (shell . t)
    (emacs-lisp . t)))
-
-;; =================
-;; Email (mu4e)
-;; =================
-;; Current version through brew (1.12) does not work with evil-collection
-;; requires installing some deps:
-;; brew install msmtp glib prce2 xapian pkg-config gmime meson isync
-(setenv "PKG_CONFIG_PATH" "/usr/local/Cellar/gmime/3.2.15/lib/pkgconfig:/usr/local/Cellar/xapian/1.4.27/lib/pkgconfig:/usr/local/Cellar/glib/2.82.5/lib/pkgconfig:/usr/local/Cellar/guile/3.0.9/lib/pkgconfig:/usr/local/Cellar/pcre2/10.44/lib/pkgconfig")
-(use-package mu4e
-  :disabled t
-  :defer 20
-  :straight (mu4e :type git
-                  :host github
-                  :files ("mu4e/*.el" "build/mu4e/*.el" "build/mu4e/*.elc")
-                  :branch "v1.12.9"
-                  :repo "djcb/mu"
-                  :pre-build (("./autogen.sh")
-                              ("make")))
-  :config
-  (require 'mu4e-contrib)
-  ;; Basic mu4e setting
-  (setq mu4e-get-mail-command "mbsync -a"
-        mu4e-update-interval 300
-        mu4e-compose-signature-auto-include nil
-        message-kill-buffer-on-exit t
-        mu4e-context-policy 'pick-first
-        mu4e-compose-context-policy 'ask)
-
-  ;; UI
-  (setq mu4e-use-fancy-chars t)
-
-  ;; SMTP configuration
-  (setq send-mail-function 'message-send-mail-with-sendmail
-        message-send-mail-function 'message-send-mail-with-sendmail
-        sendmail-program (executable-find "msmtp"))
-
-  ;; Contexts
-  (setq mu4e-contexts
-        `(,(make-mu4e-context
-            :name "icloud"
-            :match-func
-            (lambda (msg)
-              (when msg
-                (mu4e-message-contact-field-matches msg
-                                                    :to "anselm.coogan@icloud.com")))
-            :vars '((user-mail-address . "anselm.coogan@icloud.com" )
-                    (user-full-name . "Anselm Coogan")
-                    (mu4e-drafts-folder . "/icloud/Drafts")
-                    (mu4e-refile-folder . "/icloud/Archive")
-                    (mu4e-sent-folder . "/icloud/Sent Messages")
-                    (mu4e-trash-folder . "/icloud/Deleted Messages")))
-
-          ,(make-mu4e-context
-            :name "gmail"
-            :match-func
-            (lambda (msg)
-              (when msg
-                (mu4e-message-contact-field-matches msg
-                                                    :to "anselm.coogan@gmail.com")))
-            :vars '((user-mail-address . "anselm.coogan@gmail.com")
-                    (user-full-name . "Anselm Coogan")
-                    (mu4e-drafts-folder . "/gmail/Drafts")
-                    (mu4e-refile-folder . "/gmail/Archive")
-                    (mu4e-sent-folder . "/gmail/Sent")
-                    (mu4e-trash-folder . "/gmail/Trash")))
-          ,(make-mu4e-context
-            :name "taskr"
-            :match-func
-            (lambda (msg)
-              (when msg
-                (mu4e-message-contact-field-matches msg
-                                                    :to "anselm@taskr.ml")))
-            :vars '((user-mail-address . "anselm@taskr.ml")
-                    (user-full-name . "Anselm Coogan")
-                    (mu4e-drafts-folder . "/taskr/Drafts")
-                    (mu4e-refile-folder . "/taskr/Archive")
-                    (mu4e-sent-folder . "/taskr/Sent")
-                    (mu4e-trash-folder . "/taskr/Trash")))))
-  (evil-collection-mu4e-setup))
-
-;; Use different faces for different columns
-(use-package mu4e-column-faces
-  :disabled t
-  :after mu4e
-  :config (mu4e-column-faces-mode))
-
-(use-package mu4e-dashboard
-  :disabled t
-  :after mu4e
-  :straight (mu4e-dashboard
-             :type git
-             :host github
-             :repo "rougier/mu4e-dashboard"))
-
-
-;; calendar
-;;(setq gnus-icalendar-additional-identities '("anselm@taskr.ml" "anselm.coogan@icloud.com" "anselm.coogan@gmail.com"))
-;;(require 'mu4e-icalendar)
-;; (mu4e-icalendar-setup)
-;;(setq gnus-icalendar-org-capture-file "~/org/agenda.org")
-;;(setq gnus-icalendar-org-capture-headline '("Calendar"))
-;;(gnus-icalendar-org-setup)
-
-
-;; Foldable threads
-(use-package mu4e-thread-folding
-  :disabled t
-  :after mu4e
-  :straight (mu4e-thread-folding
-             :type git
-             :host github
-             :repo "rougier/mu4e-thread-folding")
-  :config
-  (add-to-list 'mu4e-header-info-custom
-               '(:empty . (:name "Empty"
-                                 :shortname ""
-                                 :function (lambda (msg) "  "))))
-  (setq mu4e-headers-fields '((:empty         .    4)
-                              (:human-date    .    12)
-                              (:flags         .    6)
-                              ;;(:mailing-list  .   10)
-                              (:from          .   22)
-                              (:subject       .   nil)))
-  :bind (:map mu4e-headers-mode-map
-              ("<tab>" . mu4e-headers-toggle-at-point))
-  :init (mu4e-thread-folding-mode +1))
-
-
-
 
 ;; =================
 ;; Text Editing
@@ -1026,39 +883,11 @@
           compilation-mode))
   (popper-mode +1)
   (popper-echo-mode +1))
-;; (use-package jinx) ;; spell checking
 ;; (use-package combobulate) ;; code editing based on tree-sitter
-;; Make eglot more performant
-;; (use-package eglot-booster
-;;     :straight (eglot-booster :type git
-;;                           :host nil
-;;                           :repo "https://github.com/jdtsmith/eglot-booster.git")
-;;
-;; 	:after eglot
-;; 	:config	(eglot-booster-mode))
+
+;; Keep Custom's machine-local state out of this tracked file
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file 'noerror)
 
 (provide '.emacs)
 ;;; .emacs ends here
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(golden-ratio-exclude-modes '(treemacs-mode)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(evil-goggles-change-face ((t (:inherit diff-removed))))
- '(evil-goggles-delete-face ((t (:inherit diff-removed))))
- '(evil-goggles-paste-face ((t (:inherit diff-added))))
- '(evil-goggles-undo-redo-add-face ((t (:inherit diff-added))))
- '(evil-goggles-undo-redo-change-face ((t (:inherit diff-changed))))
- '(evil-goggles-undo-redo-remove-face ((t (:inherit diff-removed))))
- '(evil-goggles-yank-face ((t (:inherit diff-changed))))
- '(org-document-title ((t (:height 1.5 :weight bold))))
- '(org-level-1 ((t (:inherit outline-1 :height 1.4))))
- '(org-level-2 ((t (:inherit outline-2 :height 1.3))))
- '(org-level-3 ((t (:inherit outline-3 :height 1.2))))
- '(org-level-4 ((t (:inherit outline-4 :height 1.1)))))
