@@ -545,10 +545,12 @@
 (use-package pimacs
   :straight (:host github :repo "ananthakumaran/pimacs.el")
   :custom
-  ;; like the pi TUI footer: show session cost ($) next to context usage
+  ;; like the pi TUI footer: cost, tokens, and cache stats next to context usage
   (pimacs-header-line-format
-   '(:context_usage " (" :compaction_mode ") " "$" :cost :spacer
-     "(" :provider ") " :model " \u2022 " :thinking_level)))
+   '(:context_usage " (" :compaction_mode ") "
+     "$" :cost " \u2191" :input_tokens " \u2193" :output_tokens
+     " \u29bf" :cache_hit_percent " \u03a3" :total_tokens
+     :spacer "(" :provider ") " :model " \u2022 " :thinking_level)))
 
 (defun load-secret-key-from-file (file-path)
   "Load the secret key from the specified FILE-PATH."
