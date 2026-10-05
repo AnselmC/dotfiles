@@ -71,6 +71,10 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 (global-auto-revert-mode t)      ; Auto-refresh buffers
 (savehist-mode 1)                ; Remember minibuffer history
+(recentf-mode 1)                 ; Track recent files (feeds consult-buffer)
+(setq recentf-max-saved-items 200)
+(save-place-mode 1)              ; Reopen files at last cursor position
+(electric-pair-mode 1)           ; Auto-close brackets/quotes
 (setq confirm-kill-processes nil) ;; Don't wait for confirmation if there are running processes
 (setq enable-recursive-minibuffers t)
 
@@ -363,8 +367,9 @@
 ;; Diminish minor modes from modeline
 (use-package diminish)
 
-;; Key hint system
+;; Key hint system (built into Emacs 30)
 (use-package which-key
+  :straight (:type built-in)
   :diminish which-key-mode
   :config
   (which-key-mode))
@@ -380,12 +385,34 @@
 (use-package json-ts-mode
       :mode ("\\.jsonl?\\'" "\\.bubble\\'"))
 
+;; Auto-install tree-sitter grammars and remap to -ts- modes
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode))
+
+;; Per-project environments via direnv (.envrc); buffer-local, so
+;; subprocesses (compile, vterm, pimacs agents) see the project env
+(use-package envrc
+  :if (executable-find "direnv")
+  :hook (after-init . envrc-global-mode))
+
 ;; =================
 ;; Version Control
 ;; =================
 (use-package magit
   :diminish 'smerge-mode
   :bind ("C-x g" . magit-status))
+
+;; Git gutter indicators (+ dired/magit integration)
+(use-package diff-hl
+  :config
+  (global-diff-hl-mode)
+  (add-hook 'dired-mode-hook #'diff-hl-dired-mode)
+  (add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
+  (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
 
 (use-package forge
   :after magit)
@@ -491,16 +518,15 @@
 ;; =================
 ;; Code Formatting
 ;; =================
-(use-package format-all
-  :demand t
-  :diminish format-all-mode
+;; Async format-on-save that respects project formatters (prettier,
+;; clang-format, shfmt, ...). Python intentionally excluded: it is
+;; formatted via eglot-format on save (pylsp), see Python section.
+(use-package apheleia
+  :diminish apheleia-mode
   :config
-  (add-hook 'python-mode 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'js-mode 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'web-mode 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'ess-r-mode-hook 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'c-mode-common-hook 'format-all-mode 'format-all-ensure-formatter)
-  (add-hook 'emacs-lisp-mode 'format-all-mode 'format-all-ensure-formatter))
+  (setf (alist-get 'python-mode apheleia-mode-alist) nil
+        (alist-get 'python-ts-mode apheleia-mode-alist) nil)
+  (apheleia-global-mode +1))
 
 ;; =================
 ;; Snippets
@@ -649,19 +675,12 @@
 (use-package csv-mode
   :bind (("C-c C-o" . csv-open-link-at-point)))
 
-;; Debugger
-(use-package dap-mode
-  :config
-  (require 'dap-python)
-  (require 'dap-node)
+;; Debugger (eglot-native DAP client; replaces dap-mode + its lsp-mode
+;; dependency tree)
+(use-package dape
+  :commands (dape)
   :custom
-  (dap-python-debugger "debugpy")
-  :init
-  (dap-mode 1)
-  (dap-ui-mode 1))
-
-(defun dap-python--pyenv-executable-find (command)
-  (executable-find command))
+  (dape-buffer-window-arrangement 'right))
 
 ;; ====================================
 ;; PRODUCTIVITY TOOLS
@@ -784,6 +803,13 @@
   :commands (ispell-word
              ispell-region
              ispell-buffer))
+
+;; Fast, context-aware spell checking (needs: brew install enchant)
+(use-package jinx
+  :if (executable-find "pkg-config")
+  :hook (emacs-startup . global-jinx-mode)
+  :bind (("M-$" . jinx-correct)
+         ("C-M-$" . jinx-languages)))
 
 
 ;; =================
