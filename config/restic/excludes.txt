@@ -1,0 +1,38 @@
+# restic excludes — home backup
+/Users/anselm/Library/Caches
+/Users/anselm/Library/CloudStorage
+/Users/anselm/Library/Containers
+/Users/anselm/Library/Developer
+/Users/anselm/Library/Metadata
+/Users/anselm/.Trash
+/Users/anselm/.nvm
+/Users/anselm/.rbenv
+/Users/anselm/go
+/Users/anselm/node_modules
+/Users/anselm/OrbStack
+/Users/anselm/.orbstack
+/Users/anselm/.docker
+/Users/anselm/.emacs.d/eln-cache
+/Users/anselm/.emacs.d/straight/repos
+/Users/anselm/.emacs.d/straight/build*
+# work data stays off personal backups
+/Users/anselm/code/bas-*
+/Users/anselm/code/bubble*
+/Users/anselm/code/ai-assist
+/Users/anselm/code/ai-model-deployments-art4280
+/Users/anselm/code/anselm-testing-dependency-bot
+/Users/anselm/code/art3973-review-*
+/Users/anselm/code/appgen-notes
+/Users/anselm/code/expression-gen-eval
+/Users/anselm/scratch
+/Users/anselm/handoff
+/Users/anselm/wt-eval
+/Users/anselm/.pi/agent/sessions/--Users-anselm-code-bubble*
+/Users/anselm/.pi/agent/sessions/--Users-anselm-code-ai-assist--
+/Users/anselm/.pi/agent/sessions/--Users-anselm-code-infra-configs--
+# generic churn
+**/node_modules
+**/.venv
+**/__pycache__
+**/dist
+**/build
