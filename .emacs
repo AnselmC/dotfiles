@@ -22,6 +22,7 @@
 (straight-use-package 'use-package)
 (straight-use-package 'org)
 
+
 ;; ====================================
 ;; CORE SETTINGS & PERFORMANCE
 ;; ====================================
@@ -35,6 +36,13 @@
 ;; Garbage collection settings
 (setq gc-cons-threshold (* 50 1000 1000)) ; 50MB
 (setq read-process-output-max (* 1024 1024)) ; 1MB
+
+(use-package pg
+  :straight (:host github :repo "emarsden/pg-el"))
+
+(use-package pgmacs
+  :straight (:host github :repo "emarsden/pgmacs"))
+
 
 ;; Startup Performance Monitoring
 (add-hook 'emacs-startup-hook
@@ -132,8 +140,14 @@
         evil-symbol-word-search t  ;; Makes evil-search-word- look for word
         evil-undo-system 'undo-tree
         evil-search-module 'evil-search)
+  ;; code folding
+  :bind
+  (:map evil-normal-state-map ("za" . hs-toggle-hiding))
   :config
   (evil-mode 1))
+
+
+(global-subword-mode t)
 
 (use-package undo-tree
   :demand t
@@ -334,6 +348,7 @@
 ;; Font configuration
 (defun set-font-height (height)
   "Set the font height to HEIGHT."
+  (interactive "nEnter font height: ")
   (set-face-attribute 'default nil :height height))
 
 (set-font-height 125)
@@ -363,6 +378,9 @@
 ;; Declaratively make HTTP requests
 (use-package restclient)
 
+(use-package json-ts-mode
+      :mode ("\\.jsonl?\\'" "\\.bubble\\'"))
+
 ;; =================
 ;; Version Control
 ;; =================
@@ -370,14 +388,19 @@
   :diminish 'smerge-mode
   :bind ("C-x g" . magit-status))
 
+(use-package forge
+  :after magit)
+
 (use-package treemacs-magit
   :after (treemacs magit))
+(setq auth-sources '("~/.authinfo"))
 
 (setq vc-follow-symlinks t) ;; don't warn of symlinks
 
 ;; =================
 ;; LSP Support
 ;; =================
+
 (with-eval-after-load 'eglot
   (define-key eglot-mode-map (kbd "C-c r") 'eglot-rename)
   (define-key eglot-mode-map (kbd "C-c o") 'eglot-code-action-organize-imports)
@@ -389,18 +412,44 @@
   (define-key eglot-mode-map (kbd "C-c a") 'eglot-code-actions)
   (define-key eglot-mode-map (kbd "C-c =") 'eglot-format)
   (define-key eglot-mode-map (kbd "C-c M-r") 'eglot-reconnect)
-  (define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu))
-(add-hook 'python-mode-hook 'eglot-ensure)
+  (define-key eglot-mode-map (kbd "C-c m") 'eglot-imenu)
+
+  ;; Use pylsp as primary (rename, completion, mypy via plugin)
+  ;; and ruff as secondary (fast linting + ruff-specific code actions)
+  (add-to-list 'eglot-server-programs
+               '(python-base-mode . ("pylsp")))
+  (add-to-list 'eglot-server-programs
+               '(python-base-mode . ("ruff" "server")) t) ; append
+
+  ;; Workspace configuration for all servers
+  (setq-default eglot-workspace-configuration
+                '((pylsp
+                   (plugins
+                    (ruff (enabled . :json-false))  ; disable ruff inside pylsp, we run it standalone
+                    (mypy (enabled . t))
+                    (pycodestyle (enabled . :json-false))
+                    (pyflakes (enabled . :json-false))
+                    (flake8 (enabled . :json-false))))
+                  (typescript
+                   (tsserver
+                    (maxTsServerMemory . 8192)))
+                  (eslint
+                   (execArgv . ["--max_old_space_size=8192"])))))
+
+;; Python: start eglot + format on save
+(add-hook 'python-base-mode-hook
+          (lambda ()
+            (eglot-ensure)
+            (add-hook 'after-save-hook 'eglot-format nil t)))
+
 (add-hook 'clojure-mode-hook 'eglot-ensure)
-(add-hook 'typescript-ts-mode 'eglot-ensure)
+(add-hook 'typescript-ts-mode-hook 'eglot-ensure)
+(add-hook 'typescript-tsx-mode-hook 'eglot-ensure)
 
-
-
-(setq-default eglot-workspace-configuration
-              '((pylsp
-                 (plugins
-                  (ruff (enabled . t))
-                  (mypy (enabled . t))))))
+(use-package eglot-booster
+  :straight ( eglot-booster :type git :host nil :repo "https://github.com/jdtsmith/eglot-booster")
+  :after eglot
+  :config (eglot-booster-mode))
 
 ;; Prevent eglot from spamming messages
 (defun stop-spamming-pls-2 (orig-fun &rest args)
@@ -408,6 +457,7 @@
   (if (not (string-equal (nth 1 args) "$/progress"))
       (apply orig-fun args)))
 (advice-add 'eglot-handle-notification :around #'stop-spamming-pls-2)
+
 
 ;; =================
 ;; Code Completion
@@ -465,20 +515,10 @@
 (use-package yasnippet-snippets)
 
 ;; =================
-;; Tree-sitter
-;; =================
-(use-package tree-sitter
-  :diminish tree-sitter-mode
-  :config
-  (global-tree-sitter-mode)
-  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode))
-
-(use-package tree-sitter-langs
-  :after tree-sitter)
-
-;; =================
 ;; AI Assistance
 ;; =================
+(use-package pimacs :straight (:host github :repo "ananthakumaran/pimacs.el"))
+
 (defun load-secret-key-from-file (file-path)
   "Load the secret key from the specified FILE-PATH."
   (with-temp-buffer
@@ -494,22 +534,22 @@
          ("C-c C-s" . le-gpt-consult-buffers))
   :config
   (setq le-gpt-api-type 'anthropic)
-  (setq le-gpt-model "claude-sonnet-4-20250514")
+  (setq le-gpt-model "claude-opus-4-7")
   (setq le-gpt-python-path "/Users/anselm/.venvs/le-gpt/bin/python")
   (setq le-gpt-max-tokens 10000)
 
   (setq le-gpt-openai-key (load-secret-key-from-file "~/.secrets/OPENAIKEY"))
   (setq le-gpt-anthropic-key (load-secret-key-from-file "~/.secrets/ANTHROPICKEY"))
 
-    (evil-define-key 'normal le-gpt-buffer-list-mode-map
-      (kbd "RET") #'le-gpt-buffer-list-open-buffer
-      (kbd "d") #'le-gpt-buffer-list-mark-delete
-      (kbd "u") #'le-gpt-buffer-list-unmark
-      (kbd "x") #'le-gpt-buffer-list-execute
-      (kbd "gr") #'le-gpt-buffer-list-refresh
-      (kbd "/") #'le-gpt-buffer-list-filter
-      (kbd "C-c C-s") #'le-gpt-consult-buffers
-      (kbd "q") #'quit-window)))
+  (evil-define-key 'normal le-gpt-buffer-list-mode-map
+    (kbd "RET") #'le-gpt-buffer-list-open-buffer
+    (kbd "d") #'le-gpt-buffer-list-mark-delete
+    (kbd "u") #'le-gpt-buffer-list-unmark
+    (kbd "x") #'le-gpt-buffer-list-execute
+    (kbd "gr") #'le-gpt-buffer-list-refresh
+    (kbd "/") #'le-gpt-buffer-list-filter
+    (kbd "C-c C-s") #'le-gpt-consult-buffers
+    (kbd "q") #'quit-window))
 
 
 
@@ -520,6 +560,15 @@
 ;; Typescript
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-tsx-mode))
+(setq js-indent-level 2)
+;; make sure that eglot formats with two spaces for typescript
+(setq typescript-indent-level 2)
+(add-hook 'typescript-ts-mode-hook (lambda () (setq-local typescript-indent-level 2)))
+(add-hook 'typescript-tsx-mode-hook (lambda () (setq-local typescript-indent-level 2)))
+
+(use-package nvm
+  :straight (:host github :repo "rejeep/nvm.el"))
+
 
 ;; Elisp
 (add-hook 'emacs-lisp-mode (lambda ()
@@ -528,7 +577,8 @@
 
 ;; Python
 (setq python-shell-interpreter "ipython"
-      python-shell-interpreter-args "-i --simple-prompt")
+      python-shell-interpreter-args "-i --simple-prompt"
+      python-shell-completion-native-enable t)
 
 (use-package pyvenv
   :init
@@ -590,11 +640,9 @@
 (use-package terraform-mode)
 
 ;; YAML
-(use-package yaml-mode
-  :mode (
-	     "\\.yaml\\'"
-	     "\\.yml\\'"
-	     ))
+(use-package yaml-pro
+  :hook (yaml-ts-mode . yaml-pro-mode))
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
 
 ;; CSV
 (defun csv-open-link-at-point()
@@ -609,9 +657,9 @@
 
 ;; Debugger
 (use-package dap-mode
-  :disabled t
   :config
   (require 'dap-python)
+  (require 'dap-node)
   :custom
   (dap-python-debugger "debugpy")
   :init
@@ -635,20 +683,20 @@
   (add-hook 'ekg-capture-mode-hook #'ekg-auto-save-mode)
   (add-hook 'ekg-edit-mode-hook #'ekg-auto-save-mode))
 
-  (evil-define-key 'normal ekg-notes-mode-map
-    "A" 'ekg-notes-any-tags
-    "B" 'ekg-notes-select-and-browse-url
-    "a" 'ekg-notes-any-note-tags
-    "b" 'ekg-notes-browse
-    "c" 'ekg-notes-create
-    "d" 'ekg-notes-delete
-    "g" 'ekg-notes-refresh
-    "k" 'ekg-notes-kill
-    "n" 'ekg-notes-next ;; or "j"
-    "o" 'ekg-notes-open
-    "p" 'ekg-notes-previous ;; or "k"
-    "q" 'kill-buffer-and-window
-    "t" 'ekg-notes-tag)
+(evil-define-key 'normal ekg-notes-mode-map
+  "A" 'ekg-notes-any-tags
+  "B" 'ekg-notes-select-and-browse-url
+  "a" 'ekg-notes-any-note-tags
+  "b" 'ekg-notes-browse
+  "c" 'ekg-notes-create
+  "d" 'ekg-notes-delete
+  "g" 'ekg-notes-refresh
+  "k" 'ekg-notes-kill
+  "n" 'ekg-notes-next ;; or "j"
+  "o" 'ekg-notes-open
+  "p" 'ekg-notes-previous ;; or "k"
+  "q" 'kill-buffer-and-window
+  "t" 'ekg-notes-tag)
 
 ;; Enable variable pitch fonts in Org mode
 (setq org-agenda-files '("~/org/"))
@@ -686,6 +734,13 @@
   (evil-org-agenda-set-keys))
 
 (setq org-latex-prefer-user-labels t)
+
+;; add an execute function for python for org babel
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((python . t)
+   (shell . t)
+   (emacs-lisp . t)))
 
 ;; =================
 ;; Email (mu4e)
@@ -768,10 +823,12 @@
 
 ;; Use different faces for different columns
 (use-package mu4e-column-faces
+  :disabled t
   :after mu4e
   :config (mu4e-column-faces-mode))
 
 (use-package mu4e-dashboard
+  :disabled t
   :after mu4e
   :straight (mu4e-dashboard
              :type git
@@ -780,16 +837,17 @@
 
 
 ;; calendar
-(setq gnus-icalendar-additional-identities '("anselm@taskr.ml" "anselm.coogan@icloud.com" "anselm.coogan@gmail.com"))
-(require 'mu4e-icalendar)
-(mu4e-icalendar-setup)
-(setq gnus-icalendar-org-capture-file "~/org/agenda.org")
-(setq gnus-icalendar-org-capture-headline '("Calendar"))
-(gnus-icalendar-org-setup)
+;;(setq gnus-icalendar-additional-identities '("anselm@taskr.ml" "anselm.coogan@icloud.com" "anselm.coogan@gmail.com"))
+;;(require 'mu4e-icalendar)
+;; (mu4e-icalendar-setup)
+;;(setq gnus-icalendar-org-capture-file "~/org/agenda.org")
+;;(setq gnus-icalendar-org-capture-headline '("Calendar"))
+;;(gnus-icalendar-org-setup)
 
 
 ;; Foldable threads
 (use-package mu4e-thread-folding
+  :disabled t
   :after mu4e
   :straight (mu4e-thread-folding
              :type git
@@ -820,11 +878,6 @@
   :config
   (move-text-default-bindings))
 
-;; Code folding
-(use-package origami
-  :config
-  (global-origami-mode))
-
 ;; =================
 ;; Search & Navigation
 ;; =================
@@ -844,6 +897,18 @@
   :bind (:map grep-mode-map
               ("C-c C-p" . wgrep-change-to-wgrep-mode)
               ("C-c C-c" . wgrep-finish-edit)))
+
+(use-package perspective
+  :custom
+  (persp-mode-prefix-key (kbd "C-x"))
+  (persp-state-default-file (expand-file-name "perspective-state" user-emacs-directory))
+  :init
+  (persp-mode)
+  :config
+  (define-key perspective-map (kbd "g") nil)
+  ;; perspective.el has a built-in consult source
+  (consult-customize consult--source-buffer :hidden t :default nil)
+  (add-to-list 'consult-buffer-sources persp-consult-source))
 
 ;; =================
 ;; Writing
@@ -921,6 +986,38 @@
 ;; THINGS TO CHECKOUT
 ;; ====================================
 ;; (use-package meow) ;; Replacement for evil
+(use-package indent-bars
+  :custom
+  (indent-bars-color '(highlight :face-bg t :blend 0.2))
+  (indent-bars-pattern ".")
+  (indent-bars-width-frac 0.1)
+  (indent-bars-pad-frac 0.1)
+  (indent-bars-zigzag nil)
+  (indent-bars-color-by-depth '(:regexp "outline-\\([0-9]+\\)" :blend 1))
+  (indent-bars-highlight-current-depth '(:blend 0.4))
+  (indent-bars-display-on-blank-lines t)
+  (indent-bars-no-descend-lists 'skip) ; prevent extra bars in nested lists + skip intermediate bars
+  (indent-bars-treesit-support t)
+  (indent-bars-treesit-ignore-blank-lines-types '("module"))
+  ;; Add other languages as needed; check the wiki
+  (indent-bars-treesit-scope '((python function_definition class_definition for_statement
+	  if_statement with_statement while_statement)
+	 (typescript function_declaration method_definition arrow_function
+	  class_declaration for_statement for_in_statement
+	  if_statement while_statement do_statement switch_statement
+	  try_statement)
+	 (tsx function_declaration method_definition arrow_function
+	  class_declaration for_statement for_in_statement
+	  if_statement while_statement do_statement switch_statement
+	  try_statement)))
+  ;; Note: wrap likely not be needed if no-descend-list is enough
+  ;;(indent-bars-treesit-wrap '((python argument_list parameters ; for python, as an example
+  ;;				      list list_comprehension
+  ;;				      dictionary dictionary_comprehension
+  ;;				      parenthesized_expression subscript)))
+  
+  :hook ((python-base-mode yaml-mode typescript-ts-mode typescript-tsx-mode tsx-ts-mode) . indent-bars-mode)
+  )
 (use-package popper
   :bind (("C-`"   . popper-t)
          ("M-`"   . popper-cycle)
@@ -947,3 +1044,26 @@
 
 (provide '.emacs)
 ;;; .emacs ends here
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(golden-ratio-exclude-modes '(treemacs-mode)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(evil-goggles-change-face ((t (:inherit diff-removed))))
+ '(evil-goggles-delete-face ((t (:inherit diff-removed))))
+ '(evil-goggles-paste-face ((t (:inherit diff-added))))
+ '(evil-goggles-undo-redo-add-face ((t (:inherit diff-added))))
+ '(evil-goggles-undo-redo-change-face ((t (:inherit diff-changed))))
+ '(evil-goggles-undo-redo-remove-face ((t (:inherit diff-removed))))
+ '(evil-goggles-yank-face ((t (:inherit diff-changed))))
+ '(org-document-title ((t (:height 1.5 :weight bold))))
+ '(org-level-1 ((t (:inherit outline-1 :height 1.4))))
+ '(org-level-2 ((t (:inherit outline-2 :height 1.3))))
+ '(org-level-3 ((t (:inherit outline-3 :height 1.2))))
+ '(org-level-4 ((t (:inherit outline-4 :height 1.1)))))
