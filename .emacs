@@ -367,6 +367,20 @@
 ;; Diminish minor modes from modeline
 (use-package diminish)
 
+;; Enable emacsclient (pi notifications, session rescues, scripting)
+(require 'server)
+(unless (server-running-p) (server-start))
+
+;; Notification framework: system banner via terminal-notifier (click
+;; focuses Emacs) + persistent full-text log in the *Alerts* buffer.
+(use-package alert
+  :custom
+  (alert-default-style 'notifier)
+  (alert-log-messages t)
+  :config
+  (when (boundp 'alert-notifier-default-activate)
+    (setq alert-notifier-default-activate "org.gnu.Emacs")))
+
 ;; Key hint system (built into Emacs 30)
 (use-package which-key
   :straight (:type built-in)

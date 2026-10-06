@@ -5,8 +5,9 @@
  * - an agent run settles after >= PI_NOTIFY_MIN_SECONDS (default 20s)
  * - pi blocks on a UI prompt (e.g. guardrails approval) during a long run
  *
- * Uses osascript (works from pimacs/RPC, Terminal.app, anywhere). Falls back to
- * OSC 777 on non-macOS. Skipped in headless mode (subagent children, `pi -p`).
+ * Prefers Emacs alert.el via emacsclient (persistent *Alerts* log, no
+ * truncation, click focuses Emacs). Falls back to osascript when Emacs is
+ * down, OSC 777 on non-macOS. Skipped in headless mode (subagents, `pi -p`).
  */
 
 import { basename } from "node:path";
@@ -45,6 +46,19 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	async function send(t: string, body: string) {
+		// Preferred: Emacs alert.el (full text logged to *Alerts*, system
+		// banner via terminal-notifier). JSON.stringify doubles as elisp
+		// string escaping.
+		try {
+			await pi.exec(
+				"emacsclient",
+				["-e", `(alert ${JSON.stringify(body)} :title ${JSON.stringify(t)})`],
+				{ timeout: 3000 },
+			);
+			return;
+		} catch {
+			// Emacs not running or alert.el missing — fall through.
+		}
 		if (process.platform === "darwin") {
 			await pi.exec(
 				"osascript",
