@@ -5,8 +5,8 @@ Produce a short "Morning brief":
 
 1. **Today**: state the day of week and date (from the current date/time
    given above).
-2. **Weather**: run `curl -s -m 10 'wttr.in/?format=3'` (one-line format).
-   If it fails, skip silently.
+2. **Weather**: run `curl -s -m 10 'wttr.in/NewYork?format=3'`, then the
+   same for `Lausanne` and `Zurich` — one line each. Skip any that fail.
 3. **TODOs**: read ~/org/todo.org and summarize open items — anything
    with a SCHEDULED/DEADLINE of today or overdue first, then up to 5
    other open TODOs by priority. Skip DONE items.
