@@ -876,7 +876,46 @@
 ;; Session Management
 ;; =================
 ;; Reload buffers from previous session
+(setq desktop-save t) ;; never prompt
 (desktop-save-mode 1)
+
+;; ----- Persist pimacs chats across Emacs restarts -----
+;; desktop.el can't restore process-backed chat buffers on its own; save
+;; (cwd session-file) per chat and resume it via pimacs on restore.
+(with-eval-after-load 'pimacs
+  (defun my/pimacs-desktop-save (_dirname)
+    "Serialize this pimacs chat for desktop: (CWD SESSION-FILE)."
+    (ignore-errors
+      (let* ((resp (pimacs--send-command-sync "get_state" '()))
+             (file (plist-get (plist-get resp :data) :sessionFile)))
+        (when (stringp file)
+          (list (pimacs--project-root) file)))))
+  (defun my/pimacs-desktop-restore (_filename _buffer-name misc)
+    "Recreate a pimacs chat (own agent) from desktop MISC; return buffer."
+    (let ((cwd (nth 0 misc)) (file (nth 1 misc)))
+      (when (and (stringp file) (file-exists-p file)
+                 (stringp cwd) (file-directory-p cwd))
+        (let ((buf (pimacs-chat--create nil cwd t)))
+          (with-current-buffer buf
+            (pimacs--switch-session file "Restored session (desktop)"))
+          buf))))
+  (add-hook 'pimacs-chat-mode-hook
+            (lambda () (setq-local desktop-save-buffer #'my/pimacs-desktop-save)))
+  (add-to-list 'desktop-buffer-mode-handlers
+               '(pimacs-chat-mode . my/pimacs-desktop-restore)))
+
+;; Perspectives: save on exit, restore after desktop has recreated buffers
+(add-hook 'kill-emacs-hook
+          (lambda ()
+            (when (and (bound-and-true-p persp-mode) (fboundp 'persp-state-save))
+              (ignore-errors (persp-state-save persp-state-default-file)))))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (when (and (fboundp 'persp-state-load)
+                       (boundp 'persp-state-default-file)
+                       (file-exists-p persp-state-default-file))
+              (ignore-errors (persp-state-load persp-state-default-file))))
+          90)
 
 ;; =================
 ;; Custom Functions
