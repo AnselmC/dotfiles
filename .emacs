@@ -999,6 +999,12 @@
   (popper-echo-mode +1))
 ;; (use-package combobulate) ;; code editing based on tree-sitter
 
+;; Personal finance dashboard (local project: ~/code/emacs-finance)
+(use-package finance
+  :straight nil
+  :load-path "~/code/emacs-finance/lisp"
+  :commands (finance))
+
 ;; Keep Custom's machine-local state out of this tracked file
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (load custom-file 'noerror)
